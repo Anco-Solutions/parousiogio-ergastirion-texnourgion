@@ -16,13 +16,13 @@ const modules = [
   ['🧑‍🏫', 'Καθηγητές', 'teachers', 'teachers'],
   ['🗓️', 'Πρόγραμμα', 'schedule', 'schedule'],
   ['✅', 'Παρουσίες', 'attendance_records', 'attendance'],
+  ['🕐', 'Άφιξη καθηγητή', 'teacher_arrivals', 'teacher-arrival'],
 ]
 
 const extraModules = [
   ['📅', 'Εξάμηνα', 'semesters', 'semesters'],
   ['🏫', 'Ακαδημαϊκά', 'academic', 'academic'],
   ['🧾', 'Ιστορικό ενεργειών', 'audit_logs', 'audit'],
-  ['🕐', 'Άφιξη καθηγητή', 'teacher_arrivals', 'teacher-arrival'],
 ]
 
 function StudentsView() {

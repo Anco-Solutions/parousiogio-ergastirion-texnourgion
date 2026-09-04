@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
 
+const CURRENT_SEMESTER_CODE = 'ST'
+
 const modules = [
   ['👥', 'Σπουδαστές', 'students', 'students'],
   ['🎓', 'Τμήματα & Ομάδες', 'groups', 'groups'],
@@ -165,6 +167,8 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [status, setStatus] = useState('Έλεγχος σύνδεσης…')
   const [studentCount, setStudentCount] = useState(null)
+  const [currentSemester, setCurrentSemester] = useState(null)
+  const [semesterError, setSemesterError] = useState('')
 
   useEffect(() => {
     async function checkConnection() {
@@ -174,6 +178,22 @@ function App() {
       else { setStudentCount(count ?? 0); setStatus('Συνδεδεμένο με Supabase') }
     }
     checkConnection()
+  }, [])
+
+  useEffect(() => {
+    async function loadCurrentSemester() {
+      if (!supabase) return
+      setSemesterError('')
+      const { data, error } = await supabase
+        .from('semesters')
+        .select('code,name')
+        .eq('code', CURRENT_SEMESTER_CODE)
+        .maybeSingle()
+
+      if (error) setSemesterError(error.message)
+      else setCurrentSemester(data)
+    }
+    loadCurrentSemester()
   }, [])
 
   const allModules = [...modules, ...extraModules]
@@ -199,7 +219,7 @@ function App() {
 
         <main>
           {activeView === 'dashboard' ? <>
-            <section className="hero"><div><p className="kicker">Κεντρικός πίνακας</p><h1>Παρουσιολόγιο Εργαστηρίων Τεχνολογιών</h1><p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p></div><div className="semester-card"><span>Τρέχον εξάμηνο</span><strong>Δεν έχει οριστεί</strong><small>Θα συνδεθεί με τον πίνακα semesters</small></div></section>
+            <section className="hero"><div><p className="kicker">Κεντρικός πίνακας</p><h1>Παρουσιολόγιο Εργαστηρίων Τεχνολογιών</h1><p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p></div><div className="semester-card"><span>Τρέχον εξάμηνο</span><strong>{currentSemester?.name || (semesterError ? 'Σφάλμα φόρτωσης' : 'Φόρτωση…')}</strong><small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Ανάκτηση από τον πίνακα semesters'}</small></div></section>
             <section className="stats"><div className="stat-card"><span>Σπουδαστές</span><strong>{studentCount === null ? '—' : studentCount}</strong></div><div className="stat-card"><span>Παρουσίες</span><strong>—</strong></div><div className="stat-card"><span>Σημερινά εργαστήρια</span><strong>—</strong></div></section>
             <section><div className="section-heading"><p className="kicker">Γρήγορη πρόσβαση</p><h2>Ενότητες εφαρμογής</h2></div><div className="module-grid">{modules.map(([icon, title, table, id]) => <button className="module-card" key={id} onClick={() => setActiveView(id)} type="button"><span className="module-icon">{icon}</span><span><strong>{title}</strong><small>{table}</small></span><span className="arrow">→</span></button>)}</div></section>
           </> : activeView === 'students' ? <StudentsView /> : activeView === 'audit' ? <AuditView /> : <section className="module-page"><p className="kicker">Ενότητα εφαρμογής</p><div className="page-title-row"><div><h1>{activeModule?.[0]} {activeModule?.[1]}</h1><p>Η ενότητα θα συνδεθεί με τα πραγματικά δεδομένα του Supabase.</p></div><span className="table-badge">public.{activeModule?.[2]}</span></div><div className="empty-state"><div className="empty-icon">{activeModule?.[0]}</div><h2>Έτοιμη για υλοποίηση</h2><p>Το κέλυφος λειτουργεί. Επόμενο βήμα: η πραγματική λειτουργία της συγκεκριμένης ενότητας.</p></div></section>}

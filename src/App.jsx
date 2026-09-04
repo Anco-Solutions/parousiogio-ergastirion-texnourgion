@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
 
 const DEFAULT_SEMESTER_CODE = 'ST'
+const ACADEMIC_PERIODS = [
+  { code: 'WINTER', name: '❄️ Χειμερινό' },
+  { code: 'SPRING', name: '🌸 Εαρινό' },
+]
+const DEFAULT_ACADEMIC_PERIOD = 'WINTER'
 
 const modules = [
   ['👥', 'Σπουδαστές', 'students', 'students'],
@@ -173,6 +178,10 @@ function App() {
     return localStorage.getItem('parousiologio_current_semester') || DEFAULT_SEMESTER_CODE
   })
   const [semesterError, setSemesterError] = useState('')
+  const [academicPeriod, setAcademicPeriod] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_ACADEMIC_PERIOD
+    return localStorage.getItem('parousiologio_academic_period') || DEFAULT_ACADEMIC_PERIOD
+  })
 
   useEffect(() => {
     async function checkConnection() {
@@ -208,6 +217,12 @@ function App() {
     }
     loadSemesters()
   }, [])
+
+  function handleAcademicPeriodChange(event) {
+    const period = event.target.value
+    setAcademicPeriod(period)
+    localStorage.setItem('parousiologio_academic_period', period)
+  }
 
   function handleSemesterChange(event) {
     const code = event.target.value
@@ -246,7 +261,11 @@ function App() {
                 <p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p>
               </div>
               <div className="semester-card">
-                <span>Τρέχον εξάμηνο</span>
+                <span>Ακαδημαϊκή περίοδος</span>
+                <select className="semester-select" value={academicPeriod} onChange={handleAcademicPeriodChange} aria-label="Επιλογή ακαδημαϊκής περιόδου">
+                  {ACADEMIC_PERIODS.map((period) => <option key={period.code} value={period.code}>{period.name}</option>)}
+                </select>
+                <span style={{ marginTop: '0.65rem' }}>Εξάμηνο</span>
                 {semesters.length > 0 ? (
                   <select className="semester-select" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label="Επιλογή τρέχοντος εξαμήνου">
                     {semesters.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}

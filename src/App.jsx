@@ -105,8 +105,9 @@ function AuditView() {
 }
 
 function LoginView({ onDone }) {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -114,13 +115,18 @@ function LoginView({ onDone }) {
     event.preventDefault()
     setBusy(true)
     setError('')
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    if (username.trim().toLowerCase() !== 'admin') {
+      setError('Ο χρήστης πρέπει να είναι admin.')
+      setBusy(false)
+      return
+    }
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: 'ballas.aen@gmail.com', password })
     if (signInError) setError(signInError.message)
     else onDone()
     setBusy(false)
   }
 
-  return <section className="data-page"><div className="page-title-row"><div><p className="kicker">Ασφάλεια</p><h1>🔐 Σύνδεση διαχειριστή</h1><p>Συνδέσου με τον λογαριασμό Supabase που έχει ρόλο <strong>admin</strong>.</p></div></div><form className="data-card" style={{ maxWidth: 520, padding: '1.25rem' }} onSubmit={signIn}><label>Email<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label><label style={{ marginTop: '0.9rem' }}>Κωδικός<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label><button className="primary-button" style={{ marginTop: '1rem' }} disabled={busy}>{busy ? 'Σύνδεση…' : '🔓 Σύνδεση'}</button>{error && <div className="error-box" style={{ marginTop: '1rem' }}>Αποτυχία σύνδεσης: {error}</div>}</form></section>
+  return <section className="data-page"><div className="page-title-row"><div><p className="kicker">Ασφάλεια</p><h1>🔐 Σύνδεση διαχειριστή</h1><p>Χρησιμοποίησε τον λογαριασμό <strong>admin</strong> για πρόσβαση στη διαχείριση.</p></div></div><form className="data-card" style={{ maxWidth: 520, padding: '1.25rem' }} onSubmit={signIn}><label>Χρήστης<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label><label style={{ marginTop: '0.9rem' }}>Κωδικός<div style={{ position: 'relative' }}><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '3.2rem' }} /><button type="button" aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'} title={showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'} onClick={() => setShowPassword((visible) => !visible)} style={{ position: 'absolute', right: '0.55rem', top: '50%', transform: 'translateY(-50%)', border: 0, background: 'transparent', cursor: 'pointer', fontSize: '1.35rem', padding: '0.25rem' }}>{showPassword ? '🙈' : '👁️'}</button></div></label><button className="primary-button" style={{ marginTop: '1rem' }} disabled={busy}>{busy ? 'Σύνδεση…' : '🔓 Σύνδεση'}</button>{error && <div className="error-box" style={{ marginTop: '1rem' }}>Αποτυχία σύνδεσης: {error}</div>}</form></section>
 }
 
 function App() {

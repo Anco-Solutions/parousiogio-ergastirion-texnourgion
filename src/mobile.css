@@ -1,0 +1,28 @@
+html, body, #root { width:100%; max-width:100%; overflow-x:hidden; }
+img, svg, canvas, video { max-width:100%; height:auto; }
+input, select, textarea, button { max-width:100%; }
+.semester-select { width:100%; min-height:48px; }
+@media (max-width:900px) {
+  .layout, main, .hero, .page-title-row, .toolbar, .data-card { min-width:0; width:100%; max-width:100%; }
+  .module-grid { min-width:0; }
+  .module-card, .module-card span { min-width:0; }
+  .module-card strong, .module-card small, .page-title-row p { overflow-wrap:anywhere; word-break:break-word; }
+}
+@media (max-width:650px) {
+  main { padding:22px 12px 42px; }
+  .topbar { padding:14px 12px; }
+  .hero { gap:16px; }
+  .semester-card { padding:18px; }
+  .table-wrap { overflow:visible; }
+  table { display:block; min-width:0; width:100%; }
+  thead { display:none; }
+  tbody { display:block; width:100%; }
+  tr { display:block; width:100%; padding:12px 14px; border-bottom:1px solid #edf1f6; }
+  td { display:grid; grid-template-columns:minmax(92px,36%) minmax(0,1fr); gap:10px; width:100%; padding:8px 0; border:0; overflow-wrap:anywhere; word-break:break-word; }
+  td::before { content:attr(data-label); color:#64748b; font-weight:800; }
+  .toolbar { flex-direction:column; }
+  .toolbar input, .toolbar button { width:100%; }
+  .signature-actions { flex-direction:column; }
+  .signature-actions button { width:100%; }
+  .notice { left:12px; right:12px; max-width:calc(100vw - 24px); }
+}

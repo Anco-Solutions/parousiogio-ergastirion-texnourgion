@@ -1,0 +1,68 @@
+name: Apply admin login UI change
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: ${{ github.event.head_commit.message != 'Apply admin login alias' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update admin login
+        env:
+          ADMIN_EMAIL: ballas.aen@gmail.com
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          path = Path('src/App.jsx')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('function LoginView({ onDone }) {')
+          end = text.index('\nfunction App() {', start)
+          email = os.environ['ADMIN_EMAIL']
+          replacement = f'''function LoginView({{ onDone }}) {{
+            const [username, setUsername] = useState('admin')
+            const [password, setPassword] = useState('')
+            const [showPassword, setShowPassword] = useState(false)
+            const [busy, setBusy] = useState(false)
+            const [error, setError] = useState('')
+
+            async function signIn(event) {{
+              event.preventDefault()
+              setBusy(true)
+              setError('')
+              const loginEmail = username.trim().toLowerCase() === 'admin' ? '{email}' : username.trim()
+              const {{ error: signInError }} = await supabase.auth.signInWithPassword({{ email: loginEmail, password }})
+              if (signInError) setError(signInError.message)
+              else onDone()
+              setBusy(false)
+            }}
+
+            return <section className="data-page"><div className="page-title-row"><div><p className="kicker">Ασφάλεια</p><h1>🔐 Σύνδεση διαχειριστή</h1><p>Χρησιμοποίησε τον λογαριασμό <strong>admin</strong> για πρόσβαση στη διαχείριση.</p></div></div><form className="data-card" style={{{{ maxWidth: 520, padding: '1.25rem' }}}} onSubmit={{signIn}}><label>Χρήστης<input type="text" autoComplete="username" value={{username}} onChange={{(e) => setUsername(e.target.value)}} required /></label><label style={{{{ marginTop: '0.9rem' }}}}>Κωδικός<div style={{{{ position: 'relative' }}}}><input type={{showPassword ? 'text' : 'password'}} autoComplete="current-password" value={{password}} onChange={{(e) => setPassword(e.target.value)}} required style={{{{ paddingRight: '3.2rem' }}}} /><button type="button" aria-label={{showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'}} title={{showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'}} onClick={{() => setShowPassword((visible) => !visible)}} style={{{{ position: 'absolute', right: '0.55rem', top: '50%', transform: 'translateY(-50%)', border: 0, background: 'transparent', cursor: 'pointer', fontSize: '1.35rem', padding: '0.25rem' }}}}}>{{showPassword ? '🙈' : '👁️'}}</button></div></label><button className="primary-button" style={{{{ marginTop: '1rem' }}}} disabled={{busy}}>{{busy ? 'Σύνδεση…' : '🔓 Σύνδεση'}}</button>{{error && <div className="error-box" style={{{{ marginTop: '1rem' }}}}>Αποτυχία σύνδεσης: {{error}}</div>}}</form></section>
+          }}
+          '''
+          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx
+          git diff --cached --quiet || git commit -m "Apply admin login alias"
+          git push
+
+      - name: Remove temporary workflow
+        run: |
+          git rm .github/workflows/apply-admin-login-ui.yml
+          git commit -m "Remove temporary admin login workflow"
+          git push

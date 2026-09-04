@@ -1,0 +1,127 @@
+name: Apply responsive and semester improvements
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update app and responsive CSS
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/App.jsx')
+          s = app.read_text()
+
+          s = s.replace(
+          "const DEFAULT_SEMESTER_CODE = 'ST'\nconst ACADEMIC_PERIODS = [\n  { code: 'WINTER', name: '❄️ Χειμερινό' },\n  { code: 'SPRING', name: '🌸 Εαρινό' },\n]\nconst DEFAULT_ACADEMIC_PERIOD = 'WINTER'",
+          "const ACADEMIC_PERIODS = [\n  { code: 'WINTER', name: '❄️ Χειμερινό' },\n  { code: 'SPRING', name: '🌸 Εαρινό' },\n]\nconst SEMESTERS_BY_PERIOD = {\n  WINTER: [\n    { code: 'A', name: 'Α' },\n    { code: 'D', name: 'Δ' },\n    { code: 'ST', name: 'ΣΤ' },\n  ],\n  SPRING: [\n    { code: 'B', name: 'Β' },\n    { code: 'G', name: 'Γ' },\n    { code: 'E', name: 'Ε' },\n  ],\n}\nconst DEFAULT_ACADEMIC_PERIOD = 'WINTER'"
+          )
+
+          s = s.replace(
+          "const [selectedSemesterCode, setSelectedSemesterCode] = useState(() => typeof window === 'undefined' ? DEFAULT_SEMESTER_CODE : localStorage.getItem('parousiologio_current_semester') || DEFAULT_SEMESTER_CODE)",
+          "const [selectedSemesterCode, setSelectedSemesterCode] = useState('')"
+          )
+
+          s = s.replace(
+          "  function handleAcademicPeriodChange(event) { const period = event.target.value; setAcademicPeriod(period); localStorage.setItem('parousiologio_academic_period', period) }\n  function handleSemesterChange(event) { const code = event.target.value; setSelectedSemesterCode(code); localStorage.setItem('parousiologio_current_semester', code) }",
+          "  function handleAcademicPeriodChange(event) { const period = event.target.value; setAcademicPeriod(period); setSelectedSemesterCode(''); localStorage.setItem('parousiologio_academic_period', period); localStorage.removeItem('parousiologio_current_semester') }\n  function handleSemesterChange(event) { const code = event.target.value; setSelectedSemesterCode(code); localStorage.setItem('parousiologio_current_semester', code) }"
+          )
+
+          old = """  useEffect(() => {\n    async function loadSemesters() {\n      if (!supabase) return\n      const { data, error } = await supabase.from('semesters').select('code,name')\n      if (error) { setSemesterError(error.message); return }\n      const available = data ?? []\n      setSemesters(available)\n      if (!available.some((semester) => semester.code === selectedSemesterCode)) {\n        const preferred = available.find((semester) => semester.code === DEFAULT_SEMESTER_CODE) || available[0]\n        if (preferred) setSelectedSemesterCode(preferred.code)\n      }\n    }\n    loadSemesters()\n  }, [])"""
+          new = """  useEffect(() => {\n    async function loadSemesters() {\n      if (!supabase) return\n      const { data, error } = await supabase.from('semesters').select('code,name')\n      if (error) { setSemesterError(error.message); return }\n      setSemesters(data ?? [])\n    }\n    loadSemesters()\n  }, [])\n\n  const semesterOptions = SEMESTERS_BY_PERIOD[academicPeriod] || []\n  const availableSemesterOptions = semesterOptions.map((option) => {\n    const dbSemester = semesters.find((semester) => semester.code === option.code)\n    return { ...option, name: dbSemester?.name || option.name }\n  })"""
+          if old not in s:
+              raise SystemExit('Semester loader block not found')
+          s = s.replace(old, new)
+
+          s = s.replace(
+          "const currentSemester = semesters.find((semester) => semester.code === selectedSemesterCode) || null",
+          "const currentSemester = availableSemesterOptions.find((semester) => semester.code === selectedSemesterCode) || null"
+          )
+
+          old_select = """{semesters.length > 0 ? <select className=\"semester-select\" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label=\"Επιλογή τρέχοντος εξαμήνου\">{semesters.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}</select> : <strong>{semesterError ? 'Σφάλμα φόρτωσης' : 'Φόρτωση…'}</strong>}<small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Ανάκτηση από τον πίνακα semesters'}</small>"""
+          new_select = """<select className=\"semester-select\" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label=\"Επιλογή τρέχοντος εξαμήνου\"><option value=\"\">Επιλέξτε εξάμηνο</option>{availableSemesterOptions.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}</select><small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Επιλέξτε το εξάμηνο για την επιλεγμένη ακαδημαϊκή περίοδο.'}</small>"""
+          if old_select not in s:
+              raise SystemExit('Semester select block not found')
+          s = s.replace(old_select, new_select)
+
+          s = s.replace(
+          "<td key={column}>{String(row[column] ?? '—')}</td>",
+          "<td key={column} data-label={column}>{String(row[column] ?? '—')}</td>"
+          )
+
+          s = s.replace(
+          "<td>{new Date(row.changed_at).toLocaleString('el-GR')}</td><td className=\"mono-cell\">{row.changed_by || 'Σύστημα / μη ταυτοποιημένος χρήστης'}</td><td><span className={`action-badge action-${row.action.toLowerCase()}`}>{row.action}</span></td><td>{row.table_name}</td><td className=\"mono-cell\">{row.record_id || '—'}</td><td>{row.action === 'UPDATE' ? (fields.length ? fields.join(', ') : 'Χωρίς μεταβολή') : row.action === 'INSERT' ? 'Νέα εγγραφή' : 'Διαγραφή εγγραφής'}</td>",
+          "<td data-label=\"Ημερομηνία / ώρα\">{new Date(row.changed_at).toLocaleString('el-GR')}</td><td data-label=\"Χρήστης\" className=\"mono-cell\">{row.changed_by || 'Σύστημα / μη ταυτοποιημένος χρήστης'}</td><td data-label=\"Ενέργεια\"><span className={`action-badge action-${row.action.toLowerCase()}`}>{row.action}</span></td><td data-label=\"Πίνακας\">{row.table_name}</td><td data-label=\"Εγγραφή\" className=\"mono-cell\">{row.record_id || '—'}</td><td data-label=\"Αλλαγές\">{row.action === 'UPDATE' ? (fields.length ? fields.join(', ') : 'Χωρίς μεταβολή') : row.action === 'INSERT' ? 'Νέα εγγραφή' : 'Διαγραφή εγγραφής'}</td>"
+          )
+
+          app.write_text(s)
+
+          css = Path('src/readability.css')
+          c = css.read_text()
+          addition = r'''
+
+/* Mobile-first responsive pass: prevent pages and data tables from forcing horizontal scrolling. */
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+img, svg, canvas, video { max-width: 100%; }
+input, select, textarea, button { max-width: 100%; }
+.semester-select { width: 100%; min-height: 48px; }
+@media (max-width: 900px) {
+  .layout { min-width: 0; }
+  main { min-width: 0; }
+  .hero, .page-title-row, .toolbar, .signature-pad-header { min-width: 0; }
+  .hero > *, .page-title-row > * { min-width: 0; max-width: 100%; }
+  .module-card { min-width: 0; }
+  .module-card span:nth-child(2) { min-width: 0; }
+  .module-card strong, .module-card small { overflow-wrap: anywhere; }
+}
+@media (max-width: 650px) {
+  main { width: 100%; max-width: 100%; padding: 22px 12px 42px; }
+  .topbar { width: 100%; max-width: 100%; padding: 14px 12px; }
+  .topbar > div { width: 100%; max-width: 100%; }
+  .brand-button { max-width: 100%; }
+  .brand-button > span:last-child { min-width: 0; }
+  .brand-button strong, .eyebrow { overflow-wrap: anywhere; }
+  .sidebar { width: 100%; max-width: 100%; }
+  .hero { gap: 16px; }
+  .semester-card { padding: 18px; }
+  .data-card { max-width: 100%; }
+  .table-wrap { overflow: visible; }
+  table { min-width: 0; width: 100%; display: block; }
+  thead { display: none; }
+  tbody { display: block; width: 100%; }
+  tr { display: block; width: 100%; padding: 12px 14px; border-bottom: 1px solid #edf1f6; }
+  tr:last-child { border-bottom: 0; }
+  td { display: grid; grid-template-columns: minmax(92px, 36%) minmax(0, 1fr); gap: 10px; width: 100%; padding: 8px 0; border: 0; overflow-wrap: anywhere; word-break: break-word; }
+  td::before { content: attr(data-label); color: #64748b; font-weight: 800; }
+  td.mono-cell { font-size: 12px; }
+  .toolbar { gap: 8px; }
+  .toolbar input, .toolbar button { width: 100%; }
+  .page-title-row p { overflow-wrap: anywhere; }
+  .notice { max-width: calc(100vw - 24px); }
+}
+'''
+          if 'Mobile-first responsive pass' not in c:
+              css.write_text(c + addition)
+          PY
+
+      - name: Commit changes and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx src/readability.css
+          git commit -m "Improve responsive layout and semester selection" || true
+          git push
+          git rm .github/workflows/fix-responsive-semesters.yml
+          git commit -m "Remove temporary responsive fix workflow"
+          git push

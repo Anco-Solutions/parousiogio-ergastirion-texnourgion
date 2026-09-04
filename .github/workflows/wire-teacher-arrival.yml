@@ -1,0 +1,39 @@
+name: Wire teacher arrival UI
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire arrival screen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/App.jsx')
+          s = p.read_text()
+          if "import TeacherArrivalView from './TeacherArrivalView'" not in s:
+              s = s.replace("import { isSupabaseConfigured, supabase } from './lib/supabaseClient'", "import { isSupabaseConfigured, supabase } from './lib/supabaseClient'\nimport TeacherArrivalView from './TeacherArrivalView'")
+          if "['🕐', 'Άφιξη καθηγητή', 'teacher_arrivals', 'teacher-arrival']," not in s:
+              s = s.replace("  ['🧾', 'Ιστορικό ενεργειών', 'audit_logs', 'audit'],", "  ['🧾', 'Ιστορικό ενεργειών', 'audit_logs', 'audit'],\n  ['🕐', 'Άφιξη καθηγητή', 'teacher_arrivals', 'teacher-arrival'],")
+          if "activeView === 'teacher-arrival'" not in s:
+              s = s.replace(" : activeView === 'audit' ? <AuditView /> : <section className=\"module-page\">", " : activeView === 'audit' ? <AuditView /> : activeView === 'teacher-arrival' ? <TeacherArrivalView /> : <section className=\"module-page\">")
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx
+          git diff --cached --quiet || git commit -m "Add teacher arrival screen"
+          git push
+      - name: Remove one-time workflow
+        run: |
+          rm -f .github/workflows/wire-teacher-arrival.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Remove one-time wiring workflow"
+          git push

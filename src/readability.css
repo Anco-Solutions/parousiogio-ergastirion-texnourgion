@@ -1,0 +1,41 @@
+/* Readability pass: slightly larger type and touch-friendly controls. */
+body { font-size:16px; line-height:1.55; }
+.brand-button strong { font-size:24px; }
+.eyebrow,.kicker,.nav-label { font-size:11px; }
+.connection { font-size:13px; padding:9px 13px; }
+.nav-item { font-size:14px; padding:11px 12px; min-height:44px; }
+.nav-item span { font-size:18px; }
+.hero-copy { font-size:17px; }
+.semester-card strong { font-size:24px; }
+.stat-card span { font-size:14px; }
+.section-heading h2 { font-size:27px; }
+.module-card strong { font-size:17px; }
+.module-card small { font-size:12px; }
+.page-title-row p { font-size:16px; }
+.table-badge,.count-badge { font-size:13px; padding:9px 12px; }
+.toolbar input { font-size:16px; padding:13px 15px; min-height:48px; }
+.secondary-button { font-size:15px; padding:11px 15px; min-height:44px; }
+th,td { font-size:14px; padding:13px 15px; }
+th { font-size:12px; }
+.loading { font-size:16px; }
+.error-box { font-size:16px; }
+.notice p { font-size:14px; }
+.audit-note strong { font-size:15px; }
+.audit-note span { font-size:14px; }
+.action-badge { font-size:11px; }
+.signature-pad-header strong { font-size:16px; }
+.signature-pad-header span { font-size:13px; }
+.primary-button { font-size:15px; padding:12px 16px; min-height:44px; }
+.signature-placeholder { font-size:15px; }
+@media (max-width:650px) {
+  main { padding:26px 16px 48px; }
+  .topbar { padding:16px; }
+  .brand-button strong { font-size:22px; }
+  .hero h1,.module-page h1,.data-page h1 { font-size:clamp(29px,8vw,40px); }
+  .connection { font-size:13px; }
+  .nav-item { font-size:14px; }
+  .stat-card strong { font-size:32px; }
+  .section-heading h2 { font-size:24px; }
+  .secondary-button,.primary-button { min-height:48px; }
+  .toolbar input { min-height:50px; }
+}

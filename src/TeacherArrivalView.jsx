@@ -31,7 +31,8 @@ export default function TeacherArrivalView() {
   useEffect(() => {
     async function loadLocations() {
       if (!supabase) return
-      const { data } = await supabase.from('workshop_locations').select('id,name,latitude,longitude,geofence_radius_meters').order('name')
+      const { data, error } = await supabase.from('workshop_locations').select('id,name,latitude,longitude,geofence_radius_meters').order('name')
+      if (error) setMessage(`Αδυναμία φόρτωσης χώρων: ${error.message}`)
       setLocations(data || [])
       if (data?.[0]) setLocationId(data[0].id)
     }
@@ -49,7 +50,7 @@ export default function TeacherArrivalView() {
       const distance = distanceMeters(latitude, longitude, selected.latitude, selected.longitude)
       const radius = selected.geofence_radius_meters ?? DEFAULT_RADIUS
       const passed = distance <= radius
-      setLastCheck({ latitude, longitude, accuracy, distance, radius, passed })
+      setLastCheck({ latitude, longitude, accuracy, distance, radius, passed, locationName: selected.name })
       return { selected, latitude, longitude, accuracy, distance, radius, passed }
     } catch (error) {
       setMessage(error.code === 1 ? 'Η άδεια τοποθεσίας απορρίφθηκε. Ενεργοποίησε την τοποθεσία για την καταχώρηση.' : error.message)
@@ -63,36 +64,50 @@ export default function TeacherArrivalView() {
     setBusy(true)
     const { selected, latitude, longitude, accuracy, distance, radius, passed } = result
     const { error } = await supabase.from('teacher_arrivals').insert({
-      scheduled_at: new Date().toISOString(), status: 'delay_declared', delay_minutes: Number(delayMinutes) || 0,
-      delay_reason: delayReason || null, latitude, longitude, gps_accuracy_meters: accuracy,
-      distance_meters: distance, geofence_radius_meters: radius, geofence_passed: passed,
-      location_captured_at: new Date().toISOString()
+      status: 'delay_declared',
+      delay_minutes: Number(delayMinutes) || 0,
+      delay_reason: delayReason || null,
+      latitude,
+      longitude,
+      gps_accuracy_meters: accuracy,
+      distance_meters: distance,
+      geofence_radius_meters: radius,
+      geofence_passed: passed
     })
     setBusy(false)
     if (error) setMessage(`Αποτυχία καταγραφής: ${error.message}`)
-    else setMessage(`Η καθυστέρηση καταγράφηκε. Απόσταση από ${selected.name}: ${Math.round(distance)} m.`)
+    else setMessage(`Η καθυστέρηση καταγράφηκε. Απόσταση από ${selected.name}: ${Math.round(distance)} m. Η ώρα καταγράφηκε από τον server.`)
   }
 
   async function markArrived() {
     const result = await captureLocation()
     if (!result) return
     const { selected, latitude, longitude, accuracy, distance, radius, passed } = result
-    if (!passed) { setMessage(`Δεν επιτρέπεται άφιξη: βρίσκεσαι περίπου ${Math.round(distance)} m από το εργαστήριο (όριο ${Math.round(radius)} m).`); return }
+    if (!passed) {
+      setMessage(`Δεν επιτρέπεται άφιξη: βρίσκεσαι περίπου ${Math.round(distance)} m από το εργαστήριο (όριο ${Math.round(radius)} m).`)
+      return
+    }
     setBusy(true)
     const { error } = await supabase.from('teacher_arrivals').insert({
-      scheduled_at: new Date().toISOString(), arrival_at: new Date().toISOString(), status: 'arrived',
-      latitude, longitude, gps_accuracy_meters: accuracy, distance_meters: distance,
-      geofence_radius_meters: radius, geofence_passed: true, location_captured_at: new Date().toISOString()
+      status: 'arrived',
+      latitude,
+      longitude,
+      gps_accuracy_meters: accuracy,
+      distance_meters: distance,
+      geofence_radius_meters: radius,
+      geofence_passed: true
     })
     setBusy(false)
     if (error) setMessage(`Αποτυχία καταγραφής: ${error.message}`)
-    else setMessage(`Άφιξη καταγράφηκε επιτυχώς στον χώρο ${selected.name}.`)
+    else setMessage(`Άφιξη καταγράφηκε επιτυχώς στον χώρο ${selected.name}. Η ώρα καταγράφηκε από τον server.`)
   }
 
+  const mapUrl = lastCheck ? `https://www.google.com/maps?q=${lastCheck.latitude},${lastCheck.longitude}` : ''
+
   return <section className="data-page">
-    <div className="page-title-row"><div><p className="kicker">Έλεγχος άφιξης</p><h1>🕐 Άφιξη καθηγητή</h1><p>Η θέση και η ώρα καταγράφονται μαζί με τον έλεγχο γεωγραφικής ακτίνας.</p></div></div>
+    <div className="page-title-row"><div><p className="kicker">Έλεγχος άφιξης</p><h1>🕐 Άφιξη καθηγητή</h1><p>Η θέση, η ακρίβεια GPS, η απόσταση από το εργαστήριο και η ώρα καταγράφονται μαζί με τον έλεγχο γεωγραφικής ακτίνας.</p></div></div>
     <div className="data-card" style={{ padding: '1.25rem' }}>
-      <label>Εργαστήριο / χώρος<select className="semester-select" value={locationId} onChange={(e) => setLocationId(e.target.value)}><option value="">Επιλογή χώρου…</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label>Εργαστήριο / χώρος<select className="semester-select" value={locationId} onChange={(e) => setLocationId(e.target.value)}><option value="">Επιλογή χώρου…</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name} · ακτίνα {Math.round(item.geofence_radius_meters ?? DEFAULT_RADIUS)} m</option>)}</select></label>
       <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
         <label>Λεπτά καθυστέρησης<input type="number" min="0" value={delayMinutes} onChange={(e) => setDelayMinutes(e.target.value)} /></label>
         <label>Αιτιολογία καθυστέρησης<textarea value={delayReason} onChange={(e) => setDelayReason(e.target.value)} placeholder="Προαιρετικά…" /></label>
@@ -101,7 +116,11 @@ export default function TeacherArrivalView() {
         <button type="button" className="secondary-button" disabled={busy || !locationId} onClick={declareDelay}>🟠 Δηλώνω καθυστέρηση</button>
         <button type="button" className="primary-button" disabled={busy || !locationId} onClick={markArrived}>🟢 Αφίχθηκα</button>
       </div>
-      {lastCheck && <div className="audit-note" style={{ marginTop: '1rem' }}><strong>{lastCheck.passed ? '✅ Εντός ακτίνας' : '❌ Εκτός ακτίνας'}</strong><span>Απόσταση: {Math.round(lastCheck.distance)} m · Όριο: {Math.round(lastCheck.radius)} m · Ακρίβεια GPS: περίπου {Math.round(lastCheck.accuracy)} m</span></div>}
+      {lastCheck && <div className="audit-note" style={{ marginTop: '1rem' }}>
+        <strong>{lastCheck.passed ? '✅ Εντός ακτίνας' : '❌ Εκτός ακτίνας'}</strong>
+        <span>Χώρος: {lastCheck.locationName} · Απόσταση: {Math.round(lastCheck.distance)} m · Όριο: {Math.round(lastCheck.radius)} m · Ακρίβεια GPS: περίπου {Math.round(lastCheck.accuracy)} m</span>
+        <a href={mapUrl} target="_blank" rel="noreferrer">📍 Άνοιγμα καταγεγραμμένης θέσης στον χάρτη</a>
+      </div>}
       {message && <div className="audit-note" style={{ marginTop: '1rem' }}><span>{message}</span></div>}
     </div>
   </section>

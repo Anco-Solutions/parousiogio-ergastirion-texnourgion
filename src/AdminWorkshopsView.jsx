@@ -12,6 +12,7 @@ export default function AdminWorkshopsView() {
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -32,6 +33,37 @@ export default function AdminWorkshopsView() {
 
   function change(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function useMyPosition() {
+    setError('')
+    setMessage('')
+    if (!navigator.geolocation) {
+      setError('Η συσκευή/φυλλομετρητής δεν υποστηρίζει εντοπισμό θέσης.')
+      return
+    }
+
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude
+        const longitude = position.coords.longitude
+        const accuracy = position.coords.accuracy
+        setForm((current) => ({ ...current, latitude, longitude }))
+        setMessage(`📍 Η θέση λήφθηκε. Ακρίβεια GPS περίπου ${Math.round(accuracy)} m.`)
+        setLocating(false)
+      },
+      (geoError) => {
+        const messages = {
+          1: 'Δεν δόθηκε άδεια πρόσβασης στην τοποθεσία. Ενεργοποίησε την Τοποθεσία για το Safari και ξαναδοκίμασε.',
+          2: 'Δεν ήταν δυνατός ο εντοπισμός της θέσης. Δοκίμασε ξανά σε λίγο.',
+          3: 'Ο εντοπισμός θέσης καθυστέρησε. Δοκίμασε ξανά.',
+        }
+        setError(messages[geoError.code] || 'Αποτυχία λήψης θέσης.')
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    )
   }
 
   function edit(row) {
@@ -115,6 +147,12 @@ export default function AdminWorkshopsView() {
           <label>Γεωγραφικό πλάτος<input type="number" step="any" value={form.latitude} onChange={(e) => change('latitude', e.target.value)} placeholder="38.0388302" /></label>
           <label>Γεωγραφικό μήκος<input type="number" step="any" value={form.longitude} onChange={(e) => change('longitude', e.target.value)} placeholder="23.5862993" /></label>
           <label>Ακτίνα GPS (μέτρα)<input type="number" min="1" step="1" value={form.geofence_radius_meters} onChange={(e) => change('geofence_radius_meters', e.target.value)} /></label>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="secondary-button" type="button" onClick={useMyPosition} disabled={locating}>
+            {locating ? '📡 Εντοπισμός θέσης…' : '📍 Πάρε τη θέση μου'}
+          </button>
+          <span style={{ opacity: 0.8 }}>Βρίσκεσαι στο εργαστήριο; Πάτησέ το και οι συντεταγμένες συμπληρώνονται αυτόματα.</span>
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}><input type="checkbox" checked={form.active} onChange={(e) => change('active', e.target.checked)} /> Ενεργό εργαστήριο</label>
       </div>

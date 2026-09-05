@@ -1,4 +1,4 @@
-// Final header polish: balanced title lane, compact clock, and consistent mobile layout.
+// Final header polish: compact title lane, HH:MM clock, and safe DOM updates.
 (function () {
   const apply = () => {
     const topbar = document.querySelector('.topbar')
@@ -23,8 +23,8 @@
     const datetime = topbar.querySelector('.aen-datetime')
     if (datetime) {
       datetime.style.setProperty('position', 'absolute', 'important')
-      datetime.style.setProperty('top', '7px', 'important')
-      datetime.style.setProperty('right', '10px', 'important')
+      datetime.style.setProperty('top', '6px', 'important')
+      datetime.style.setProperty('right', '9px', 'important')
       datetime.style.setProperty('left', 'auto', 'important')
       datetime.style.setProperty('bottom', 'auto', 'important')
       datetime.style.setProperty('transform', 'none', 'important')
@@ -32,19 +32,21 @@
       datetime.style.setProperty('flex-direction', 'row', 'important')
       datetime.style.setProperty('align-items', 'baseline', 'important')
       datetime.style.setProperty('justify-content', 'flex-end', 'important')
-      datetime.style.setProperty('gap', '6px', 'important')
+      datetime.style.setProperty('gap', '5px', 'important')
       datetime.style.setProperty('width', 'auto', 'important')
-      datetime.style.setProperty('max-width', 'calc(100% - 82px)', 'important')
+      datetime.style.setProperty('max-width', 'none', 'important')
       datetime.style.setProperty('white-space', 'nowrap', 'important')
       datetime.style.setProperty('z-index', '20', 'important')
     }
 
-    const stripSeconds = () => {
+    const cleanClock = () => {
       const clock = topbar.querySelector('.aen-datetime .aen-clock')
       if (!clock) return
-      clock.textContent = clock.textContent.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1')
+      const current = clock.textContent
+      const cleaned = current.replace(/(\d{1,2}:\d{2})(?::\d{2})/g, '$1')
+      if (current !== cleaned) clock.textContent = cleaned
     }
-    stripSeconds()
+    cleanClock()
 
     const styleId = 'aen-final-polish-style'
     if (!document.getElementById(styleId)) {
@@ -54,27 +56,27 @@
         .topbar .aen-school-primary,
         .topbar .aen-school-secondary { display:inline !important; white-space:nowrap !important; }
         .topbar .aen-school-primary::after { content:' • '; }
-        .topbar .aen-school-primary { margin:0 !important; }
+        .topbar .aen-school-primary,
         .topbar .aen-school-secondary { margin:0 !important; }
-        .topbar .brand-button .eyebrow { display:block !important; white-space:nowrap !important; text-align:center !important; }
+        .topbar .brand-button .eyebrow { display:block !important; white-space:nowrap !important; text-align:center !important; letter-spacing:.06em !important; }
         .topbar .brand-button > span:last-child {
-          left:90px !important;
-          right:10px !important;
+          left:84px !important;
+          right:8px !important;
           width:auto !important;
           max-width:none !important;
           transform:none !important;
           align-items:center !important;
         }
         @media (max-width:650px) {
-          .topbar .brand-button > span:last-child { top:35px !important; }
-          .topbar .brand-button strong { font-size:29px !important; }
-          .topbar .brand-button .eyebrow { font-size:8.5px !important; line-height:1.15 !important; letter-spacing:.055em !important; }
-          .topbar .aen-datetime .aen-date { font-size:8.5px !important; }
-          .topbar .aen-datetime .aen-clock { font-size:16px !important; }
+          .topbar .brand-button > span:last-child { top:31px !important; }
+          .topbar .brand-button strong { font-size:28px !important; letter-spacing:.01em !important; }
+          .topbar .brand-button .eyebrow { font-size:8px !important; line-height:1.1 !important; letter-spacing:.045em !important; }
+          .topbar .aen-datetime .aen-date { font-size:8px !important; }
+          .topbar .aen-datetime .aen-clock { font-size:15px !important; }
         }
         @media (min-width:651px) {
-          .topbar .brand-button > span:last-child { left:110px !important; right:110px !important; top:47px !important; }
-          .topbar .brand-button strong { font-size:34px !important; }
+          .topbar .brand-button > span:last-child { left:108px !important; right:108px !important; top:40px !important; }
+          .topbar .brand-button strong { font-size:34px !important; letter-spacing:.01em !important; }
           .topbar .brand-button .eyebrow { font-size:9px !important; }
         }
       `
@@ -95,7 +97,9 @@
     if (!clock || clock.dataset.secondsObserver) return
     clock.dataset.secondsObserver = '1'
     const clean = () => {
-      clock.textContent = clock.textContent.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1')
+      const current = clock.textContent
+      const cleaned = current.replace(/(\d{1,2}:\d{2})(?::\d{2})/g, '$1')
+      if (current !== cleaned) clock.textContent = cleaned
     }
     clean()
     new MutationObserver(clean).observe(clock, { childList: true, characterData: true, subtree: true })

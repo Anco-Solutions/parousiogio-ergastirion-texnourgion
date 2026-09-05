@@ -25,9 +25,41 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          .topbar:has(.aen-datetime) { min-height: 220px !important; padding-bottom: 36px !important; }
-          .sidebar { padding-left: 0 !important; padding-right: 12px !important; }
-          .sidebar::before { flex-basis: 4px !important; }
+          /* Give the two header rows more deliberate breathing room. */
+          .topbar:has(.aen-datetime) {
+            min-height: 240px !important;
+            padding-bottom: 36px !important;
+          }
+
+          /* Keep the AEN logo larger than either text row and centered
+             vertically in the full header, rather than aligned to the top. */
+          .brand-button {
+            position: relative !important;
+            align-items: center !important;
+            min-height: 100% !important;
+            padding-left: 108px !important;
+            box-sizing: border-box !important;
+          }
+          .aen-logo-mark {
+            position: absolute !important;
+            left: 0 !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            width: 92px !important;
+            height: 92px !important;
+            min-width: 92px !important;
+            min-height: 92px !important;
+          }
+
+          .sidebar {
+            padding-left: 0 !important;
+            padding-right: 12px !important;
+          }
+          /* About 1 mm of breathing room from the left screen edge. */
+          .sidebar > .nav-item:first-child {
+            margin-left: 4px !important;
+          }
+          .sidebar::before { flex-basis: 0 !important; width: 0 !important; }
         }
       `
       document.head.appendChild(style)

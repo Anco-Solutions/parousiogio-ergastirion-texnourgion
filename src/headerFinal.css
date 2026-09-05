@@ -114,7 +114,10 @@
 }
 .topbar .aen-datetime .aen-date { order: 1 !important; font-size: 11px !important; font-weight: 800 !important; line-height: 1.1 !important; color: #fff !important; }
 .topbar .aen-datetime .aen-clock { order: 2 !important; font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #fff !important; }
-.topbar > div:last-child {
+
+/* The action container is the other direct div. Do not use :last-child:
+   the datetime div is appended after it by uiPatch.js. */
+.topbar > div:not(.aen-datetime) {
   position: absolute !important;
   right: 12px !important;
   bottom: 12px !important;
@@ -129,8 +132,8 @@
   margin: 0 !important;
   padding: 0 !important;
 }
-.topbar > div:last-child .connection { display: none !important; }
-.topbar > div:last-child .secondary-button {
+.topbar > div:not(.aen-datetime) .connection { display: none !important; }
+.topbar > div:not(.aen-datetime) .secondary-button {
   margin: 0 !important;
   min-height: 38px !important;
   padding: 7px 14px !important;
@@ -152,8 +155,8 @@
   .topbar .brand-button > span:last-child { left: 50% !important; top: 69px !important; width: calc(100% - 24px) !important; max-width: none !important; }
   .topbar .brand-button strong { font-size: 31px !important; }
   .topbar .brand-button .eyebrow { font-size: 8.5px !important; letter-spacing: .065em !important; }
-  .topbar > div:last-child { right: 12px !important; bottom: 9px !important; }
-  .topbar > div:last-child .secondary-button { min-height: 34px !important; padding: 5px 12px !important; font-size: 15px !important; border-radius: 16px !important; }
+  .topbar > div:not(.aen-datetime) { right: 12px !important; bottom: 9px !important; }
+  .topbar > div:not(.aen-datetime) .secondary-button { min-height: 34px !important; padding: 5px 12px !important; font-size: 15px !important; border-radius: 16px !important; }
 }
 @media (min-width: 651px) {
   .topbar { height: 178px !important; }

@@ -144,7 +144,7 @@ function App() {
   useEffect(() => {
     if (!supabase) { setAuthChecked(true); return }
     let mounted = true
-    supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setAuthChecked(true) } })
+    supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setAuthChecked(true) } }).catch(() => { if (mounted) setAuthChecked(true) })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setAuthChecked(true); if (!nextSession) { setIsAdmin(false); if (activeView === 'admin-workshops') setActiveView('dashboard') } })
     return () => { mounted = false; listener.subscription.unsubscribe() }
   }, [])
@@ -191,8 +191,6 @@ function App() {
   const currentSemester = semesters.find((semester) => semester.code === selectedSemesterCode) || null
   const allModules = [...modules, ...extraModules]
   const activeModule = allModules.find(([, , , id]) => id === activeView)
-
-  if (!authChecked && isSupabaseConfigured) return <div className="app-shell"><div className="loading" style={{ padding: '3rem' }}>Έλεγχος ασφαλούς σύνδεσης…</div></div>
 
   return <div className="app-shell">
     <header className="topbar">

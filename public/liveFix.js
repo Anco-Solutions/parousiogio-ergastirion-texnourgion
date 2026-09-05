@@ -25,7 +25,7 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          .topbar:has(.aen-datetime) { min-height: 204px !important; padding-bottom: 36px !important; }
+          .topbar:has(.aen-datetime) { min-height: 220px !important; padding-bottom: 36px !important; }
           .sidebar { padding-left: 0 !important; padding-right: 12px !important; }
           .sidebar::before { flex-basis: 4px !important; }
         }
@@ -43,4 +43,17 @@
   setTimeout(fix, 100)
   setTimeout(fix, 500)
   setInterval(fix, 1000)
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'characterData' || mutation.type === 'childList') {
+        if (mutation.target?.closest?.('.aen-clock') || mutation.target?.querySelector?.('.aen-clock')) {
+          fixClock()
+          break
+        }
+      }
+    }
+  })
+
+  observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true })
 })()

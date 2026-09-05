@@ -2,6 +2,23 @@ const PERIODS = { WINTER: [['A','Α'],['D','Δ'],['ST','ΣΤ']], SPRING: [['B','
 
 function setText(el, value) { if (el && el.textContent !== value) el.textContent = value }
 
+function updateDateTime() {
+  const topbar = document.querySelector('.topbar')
+  if (!topbar) return
+  let box = topbar.querySelector('.aen-datetime')
+  if (!box) {
+    box = document.createElement('div')
+    box.className = 'aen-datetime'
+    box.innerHTML = '<strong class="aen-clock"></strong><span class="aen-date"></span>'
+    topbar.appendChild(box)
+  }
+  const now = new Date()
+  const time = new Intl.DateTimeFormat('el-GR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now)
+  const date = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(now)
+  setText(box.querySelector('.aen-clock'), time)
+  setText(box.querySelector('.aen-date'), date)
+}
+
 function applyPatch() {
   const eyebrow = document.querySelector('.brand-button .eyebrow')
   const brand = document.querySelector('.brand-button strong')
@@ -21,6 +38,8 @@ function applyPatch() {
       mark.dataset.aenLogoRendered = 'true'
     }
   }
+
+  updateDateTime()
 
   const heading = [...document.querySelectorAll('h1')].find(h => h.textContent.includes('Σύνδεση διαχειριστή'))
   const page = heading?.closest('.data-page')
@@ -60,13 +79,18 @@ function installStyles() {
   body{background:#eef3f9!important}
   .topbar{min-height:0!important;height:auto!important;padding:24px clamp(22px,6vw,76px) 30px!important;background:linear-gradient(135deg,#06192d 0%,#0c3158 52%,#123f6d 100%)!important;position:relative!important;overflow:hidden!important;box-shadow:0 8px 30px rgba(4,20,38,.20)!important}
   .topbar:after{content:"";position:absolute;left:-5%;right:-5%;bottom:-64px;height:120px;border-top:2px solid rgba(255,255,255,.10);border-radius:50%;box-shadow:0 -20px 0 rgba(255,255,255,.035),0 -42px 0 rgba(255,255,255,.025);pointer-events:none}
-  .brand-button{position:relative!important;z-index:2!important;gap:26px!important;align-items:center!important;min-width:0!important}
+  .brand-button{position:relative!important;z-index:2!important;gap:26px!important;align-items:center!important;min-width:0!important;max-width:calc(100% - 250px)!important}
   .brand-button>span:last-child{min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
-  .brand-button strong{order:1!important;color:#fff!important;font-size:clamp(38px,6vw,68px)!important;line-height:.98!important;letter-spacing:-.04em!important;font-weight:900!important}
+  .brand-button strong{order:1!important;color:#fff!important;font-size:clamp(38px,6vw,68px)!important;line-height:.98!important;letter-spacing:-.04em!important;font-weight:900!important;white-space:nowrap!important}
   .brand-button .eyebrow{order:2!important;margin:16px 0 0!important;color:#d9eaff!important;font-size:clamp(12px,1.7vw,20px)!important;letter-spacing:.22em!important;font-weight:800!important;text-transform:uppercase!important}
   .aen-logo-mark{width:190px!important;height:190px!important;min-width:190px!important;min-height:190px!important;border-radius:28px!important;background:#fff!important;border:3px solid rgba(255,255,255,.78)!important;box-shadow:0 12px 34px rgba(0,0,0,.22)!important;overflow:hidden!important;padding:5px!important;box-sizing:border-box!important}
   .aen-inline-logo{width:100%!important;height:100%!important;display:block!important}
-  .connection{position:relative!important;z-index:3!important;align-self:flex-start!important;margin-top:8px!important;background:rgba(255,255,255,.08)!important;color:#dbeafe!important;border-color:rgba(255,255,255,.20)!important}
+  .topbar>div:last-child{position:absolute!important;right:clamp(18px,5vw,76px)!important;top:20px!important;z-index:5!important;display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:nowrap!important}
+  .connection{position:relative!important;z-index:3!important;margin:0!important;background:rgba(255,255,255,.08)!important;color:#dbeafe!important;border-color:rgba(255,255,255,.20)!important;font-size:12px!important}
+  .topbar .secondary-button{background:rgba(255,255,255,.10)!important;color:#fff!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:12px!important;padding:9px 14px!important;font-weight:800!important}
+  .aen-datetime{position:absolute!important;right:clamp(18px,5vw,76px)!important;bottom:25px!important;z-index:4!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;color:#fff!important;text-align:right!important;pointer-events:none!important;text-shadow:0 2px 12px rgba(0,0,0,.18)!important}
+  .aen-clock{font-size:clamp(25px,3.2vw,40px)!important;line-height:1!important;letter-spacing:.04em!important;font-weight:900!important;font-variant-numeric:tabular-nums!important}
+  .aen-date{margin-top:7px!important;font-size:clamp(11px,1.3vw,16px)!important;font-weight:700!important;letter-spacing:.05em!important;text-transform:capitalize!important;color:#d9eaff!important}
   .layout{display:block!important;min-height:0!important}
   .sidebar{background:#fff!important;border:0!important;border-bottom:1px solid #e0e7f0!important;padding:10px clamp(12px,4vw,54px)!important;display:flex!important;align-items:center!important;gap:8px!important;overflow-x:auto!important;box-shadow:0 4px 18px rgba(15,23,42,.06)!important}
   .nav-label{display:none!important}
@@ -90,8 +114,8 @@ function installStyles() {
   .admin-password-toggle{position:absolute!important;right:10px!important;top:50%!important;transform:translateY(-50%)!important;width:48px!important;height:48px!important;border:0!important;border-radius:12px!important;background:transparent!important;color:#5b6d86!important;font-size:22px!important;cursor:pointer!important}
   .admin-login-submit{width:100%!important;min-height:68px!important;margin-top:26px!important;border-radius:16px!important;background:linear-gradient(135deg,#1769e8,#2d6fe4)!important;font-size:20px!important;font-weight:900!important;box-shadow:0 12px 28px rgba(37,99,235,.25)!important}
   .admin-login-card .error-box{margin-top:16px!important}
-  @media(max-width:900px){.topbar{padding:20px 18px 26px!important}.brand-button{gap:18px!important}.aen-logo-mark{width:132px!important;height:132px!important;min-width:132px!important;min-height:132px!important}.connection{display:none!important}.sidebar{padding:9px 12px!important}.nav-item{padding:10px 13px!important;font-size:14px!important}.nav-item span{font-size:21px!important}.admin-login-card{padding:34px 28px 30px!important}}
-  @media(max-width:650px){.topbar{padding:16px 14px 24px!important}.brand-button{gap:14px!important}.aen-logo-mark{width:92px!important;height:92px!important;min-width:92px!important;min-height:92px!important;border-radius:18px!important}.brand-button strong{font-size:clamp(34px,10vw,48px)!important}.brand-button .eyebrow{font-size:10px!important;letter-spacing:.16em!important;margin-top:10px!important}.sidebar{gap:4px!important}.nav-item{padding:9px 10px!important;font-size:13px!important}.nav-item span{width:24px!important;font-size:19px!important}.admin-login-card{margin:20px 0 36px!important;padding:28px 18px 24px!important;border-radius:22px!important}.admin-login-title{font-size:34px!important;line-height:1.05!important}.admin-login-card:before{width:68px;height:68px;font-size:32px;margin-bottom:14px}.admin-login-field{font-size:16px!important}.admin-login-input{height:58px!important;font-size:17px!important;padding:0 16px!important}.admin-login-submit{min-height:58px!important;font-size:18px!important}}
+  @media(max-width:900px){.topbar{padding:20px 18px 28px!important}.brand-button{gap:18px!important;max-width:calc(100% - 190px)!important}.aen-logo-mark{width:132px!important;height:132px!important;min-width:132px!important;min-height:132px!important}.connection{display:none!important}.aen-datetime{right:18px!important;bottom:24px!important}.aen-clock{font-size:25px!important}.aen-date{font-size:10px!important}.sidebar{padding:9px 12px!important}.nav-item{padding:10px 13px!important;font-size:14px!important}.nav-item span{font-size:21px!important}.admin-login-card{padding:34px 28px 30px!important}}
+  @media(max-width:650px){.topbar{padding:16px 14px 25px!important;min-height:190px!important}.topbar>div:last-child{right:14px!important;top:12px!important}.topbar .secondary-button{padding:7px 10px!important;font-size:12px!important}.brand-button{gap:14px!important;max-width:100%!important;width:100%!important;padding-top:25px!important;padding-right:0!important;align-items:flex-start!important}.aen-logo-mark{width:92px!important;height:92px!important;min-width:92px!important;min-height:92px!important;border-radius:18px!important}.brand-button strong{font-size:clamp(32px,9.2vw,46px)!important;white-space:normal!important;line-height:1!important;max-width:calc(100vw - 130px)!important}.brand-button .eyebrow{font-size:9px!important;letter-spacing:.15em!important;line-height:1.5!important;margin-top:9px!important}.aen-datetime{right:14px!important;bottom:10px!important}.aen-clock{font-size:20px!important}.aen-date{font-size:9px!important;max-width:180px!important}.sidebar{gap:4px!important}.nav-item{padding:9px 10px!important;font-size:13px!important}.nav-item span{width:24px!important;font-size:19px!important}.admin-login-card{margin:20px 0 36px!important;padding:28px 18px 24px!important;border-radius:22px!important}.admin-login-title{font-size:34px!important;line-height:1.05!important}.admin-login-card:before{width:68px;height:68px;font-size:32px;margin-bottom:14px}.admin-login-field{font-size:16px!important}.admin-login-input{height:58px!important;font-size:17px!important;padding:0 16px!important}.admin-login-submit{min-height:58px!important;font-size:18px!important}}
   `
   document.head.appendChild(style)
 }
@@ -102,3 +126,4 @@ const observer = new MutationObserver(schedulePatch)
 observer.observe(document.documentElement, { childList:true, subtree:true })
 window.addEventListener('change', e => { if (e.target?.matches?.('select[aria-label="Επιλογή ακαδημαϊκής περιόδου"]')) schedulePatch() })
 schedulePatch()
+setInterval(updateDateTime, 1000)

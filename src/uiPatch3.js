@@ -29,7 +29,7 @@
     if (titleLane) {
       titleLane.style.setProperty('left', mobile ? '84px' : '108px', 'important')
       titleLane.style.setProperty('right', mobile ? '8px' : '108px', 'important')
-      titleLane.style.setProperty('top', mobile ? '27px' : '38px', 'important')
+      titleLane.style.setProperty('top', mobile ? '20px' : '38px', 'important')
       titleLane.style.setProperty('width', 'auto', 'important')
       titleLane.style.setProperty('max-width', 'none', 'important')
       titleLane.style.setProperty('transform', 'none', 'important')
@@ -39,7 +39,7 @@
     const strong = topbar.querySelector('.brand-button strong')
     if (strong) {
       strong.style.setProperty('font-size', mobile ? '28px' : '34px', 'important')
-      strong.style.setProperty('letter-spacing', '.01em', 'important')
+      strong.style.setProperty('letter-spacing', '.012em', 'important')
       strong.style.setProperty('line-height', '1', 'important')
     }
 
@@ -76,7 +76,7 @@
     if (adminWrap) {
       adminWrap.style.setProperty('position', 'absolute', 'important')
       adminWrap.style.setProperty('right', mobile ? '8px' : '10px', 'important')
-      adminWrap.style.setProperty('bottom', '5px', 'important')
+      adminWrap.style.setProperty('bottom', '0px', 'important')
       adminWrap.style.setProperty('top', 'auto', 'important')
       adminWrap.style.setProperty('left', 'auto', 'important')
       adminWrap.style.setProperty('width', 'auto', 'important')

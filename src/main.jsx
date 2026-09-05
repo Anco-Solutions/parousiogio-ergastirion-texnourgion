@@ -25,4 +25,7 @@ setTimeout(() => {
   import('./uiPatch2.js').catch((error) => {
     console.error('Final UI patch could not be loaded:', error)
   })
+  import('./uiPatch3.js').catch((error) => {
+    console.error('Header polish patch could not be loaded:', error)
+  })
 }, 0)

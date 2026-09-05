@@ -1,8 +1,13 @@
-// Final header polish: compact title lane, HH:MM clock, and safe DOM updates.
+// Final header polish: compact title lane, HH:MM clock, safe DOM updates.
 (function () {
   const apply = () => {
     const topbar = document.querySelector('.topbar')
     if (!topbar) return false
+
+    const mobile = window.matchMedia('(max-width:650px)').matches
+    topbar.style.setProperty('height', mobile ? '96px' : '108px', 'important')
+    topbar.style.setProperty('min-height', '0', 'important')
+    topbar.style.setProperty('overflow', 'hidden', 'important')
 
     const logo = topbar.querySelector('.aen-exact-logo, .aen-logo-mark img, .brand-mark img')
     if (logo) {
@@ -20,11 +25,36 @@
       eyebrow.innerHTML = '<span class="aen-school-primary">ΑΕΝ ΑΣΠΡΟΠΥΡΓΟΥ</span><span class="aen-school-secondary">ΣΧΟΛΗ ΜΗΧΑΝΙΚΩΝ</span>'
     }
 
+    const titleLane = topbar.querySelector('.brand-button > span:last-child')
+    if (titleLane) {
+      titleLane.style.setProperty('left', mobile ? '84px' : '108px', 'important')
+      titleLane.style.setProperty('right', mobile ? '8px' : '108px', 'important')
+      titleLane.style.setProperty('top', mobile ? '27px' : '38px', 'important')
+      titleLane.style.setProperty('width', 'auto', 'important')
+      titleLane.style.setProperty('max-width', 'none', 'important')
+      titleLane.style.setProperty('transform', 'none', 'important')
+      titleLane.style.setProperty('align-items', 'center', 'important')
+    }
+
+    const strong = topbar.querySelector('.brand-button strong')
+    if (strong) {
+      strong.style.setProperty('font-size', mobile ? '28px' : '34px', 'important')
+      strong.style.setProperty('letter-spacing', '.01em', 'important')
+      strong.style.setProperty('line-height', '1', 'important')
+    }
+
+    const eyebrowText = topbar.querySelector('.brand-button .eyebrow')
+    if (eyebrowText) {
+      eyebrowText.style.setProperty('font-size', mobile ? '8px' : '9px', 'important')
+      eyebrowText.style.setProperty('letter-spacing', mobile ? '.045em' : '.06em', 'important')
+      eyebrowText.style.setProperty('white-space', 'nowrap', 'important')
+    }
+
     const datetime = topbar.querySelector('.aen-datetime')
     if (datetime) {
       datetime.style.setProperty('position', 'absolute', 'important')
-      datetime.style.setProperty('top', '6px', 'important')
-      datetime.style.setProperty('right', '9px', 'important')
+      datetime.style.setProperty('top', mobile ? '5px' : '7px', 'important')
+      datetime.style.setProperty('right', mobile ? '8px' : '10px', 'important')
       datetime.style.setProperty('left', 'auto', 'important')
       datetime.style.setProperty('bottom', 'auto', 'important')
       datetime.style.setProperty('transform', 'none', 'important')
@@ -39,12 +69,28 @@
       datetime.style.setProperty('z-index', '20', 'important')
     }
 
+    const clock = topbar.querySelector('.aen-datetime .aen-clock')
+    if (clock) clock.style.setProperty('font-size', mobile ? '15px' : '16px', 'important')
+
+    const adminWrap = Array.from(topbar.children).find((el) => el !== topbar.querySelector('.aen-datetime') && el.tagName === 'DIV')
+    if (adminWrap) {
+      adminWrap.style.setProperty('position', 'absolute', 'important')
+      adminWrap.style.setProperty('right', mobile ? '8px' : '10px', 'important')
+      adminWrap.style.setProperty('bottom', '5px', 'important')
+      adminWrap.style.setProperty('top', 'auto', 'important')
+      adminWrap.style.setProperty('left', 'auto', 'important')
+      adminWrap.style.setProperty('width', 'auto', 'important')
+      adminWrap.style.setProperty('margin', '0', 'important')
+      adminWrap.style.setProperty('padding', '0', 'important')
+      adminWrap.style.setProperty('z-index', '10', 'important')
+    }
+
     const cleanClock = () => {
-      const clock = topbar.querySelector('.aen-datetime .aen-clock')
-      if (!clock) return
-      const current = clock.textContent
+      const clockNode = topbar.querySelector('.aen-datetime .aen-clock')
+      if (!clockNode) return
+      const current = clockNode.textContent
       const cleaned = current.replace(/(\d{1,2}:\d{2})(?::\d{2})/g, '$1')
-      if (current !== cleaned) clock.textContent = cleaned
+      if (current !== cleaned) clockNode.textContent = cleaned
     }
     cleanClock()
 
@@ -58,27 +104,6 @@
         .topbar .aen-school-primary::after { content:' • '; }
         .topbar .aen-school-primary,
         .topbar .aen-school-secondary { margin:0 !important; }
-        .topbar .brand-button .eyebrow { display:block !important; white-space:nowrap !important; text-align:center !important; letter-spacing:.06em !important; }
-        .topbar .brand-button > span:last-child {
-          left:84px !important;
-          right:8px !important;
-          width:auto !important;
-          max-width:none !important;
-          transform:none !important;
-          align-items:center !important;
-        }
-        @media (max-width:650px) {
-          .topbar .brand-button > span:last-child { top:31px !important; }
-          .topbar .brand-button strong { font-size:28px !important; letter-spacing:.01em !important; }
-          .topbar .brand-button .eyebrow { font-size:8px !important; line-height:1.1 !important; letter-spacing:.045em !important; }
-          .topbar .aen-datetime .aen-date { font-size:8px !important; }
-          .topbar .aen-datetime .aen-clock { font-size:15px !important; }
-        }
-        @media (min-width:651px) {
-          .topbar .brand-button > span:last-child { left:108px !important; right:108px !important; top:40px !important; }
-          .topbar .brand-button strong { font-size:34px !important; letter-spacing:.01em !important; }
-          .topbar .brand-button .eyebrow { font-size:9px !important; }
-        }
       `
       document.head.appendChild(style)
     }

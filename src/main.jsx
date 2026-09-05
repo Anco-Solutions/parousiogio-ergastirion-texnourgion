@@ -13,3 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </ErrorBoundary>
   </React.StrictMode>,
 )
+
+// Load the visual compatibility patch only after React has mounted.
+// If it fails, the application itself remains usable.
+setTimeout(() => {
+  import('./uiPatch.js').catch((error) => {
+    console.error('UI patch could not be loaded:', error)
+  })
+}, 0)

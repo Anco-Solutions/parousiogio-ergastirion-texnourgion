@@ -5,6 +5,7 @@ import ErrorBoundary from './ErrorBoundary'
 import './styles.css'
 import './readability.css'
 import './mobile.css'
+import './finalMobileFix.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -14,8 +15,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Load the visual compatibility patch only after React has mounted.
-// If it fails, the application itself remains usable.
+// Load the visual compatibility patches only after React has mounted.
+// If they fail, the application itself remains usable.
 setTimeout(() => {
   import('./uiPatch.js').catch((error) => {
     console.error('UI patch could not be loaded:', error)

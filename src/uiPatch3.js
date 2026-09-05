@@ -1,61 +1,67 @@
-// Final header polish + stable horizontal navigation.
+// Final header polish + Safari-safe horizontal navigation.
 (function () {
   const installNavFix = () => {
     const nav = document.querySelector('.sidebar')
     if (!nav) return false
 
-    if (!nav.dataset.aenNavFixed) {
-      nav.dataset.aenNavFixed = '1'
-
-      const clamp = () => {
-        const max = Math.max(0, nav.scrollWidth - nav.clientWidth)
-        if (nav.scrollLeft < 0) nav.scrollLeft = 0
-        else if (nav.scrollLeft > max) nav.scrollLeft = max
-      }
-
+    if (!document.getElementById('aen-stable-horizontal-nav')) {
       const style = document.createElement('style')
       style.id = 'aen-stable-horizontal-nav'
       style.textContent = `
+        /* Use native block overflow instead of a flex scroller on Safari. */
         .sidebar {
-          display:flex !important;
-          flex-direction:row !important;
-          flex-wrap:nowrap !important;
-          align-items:center !important;
-          justify-content:flex-start !important;
+          display:block !important;
           width:100% !important;
           max-width:100% !important;
           min-width:0 !important;
           box-sizing:border-box !important;
           overflow-x:auto !important;
           overflow-y:hidden !important;
+          white-space:nowrap !important;
           touch-action:pan-x !important;
+          -webkit-overflow-scrolling:touch !important;
           overscroll-behavior-x:contain !important;
           overscroll-behavior-y:none !important;
           scroll-behavior:auto !important;
           scroll-snap-type:none !important;
-          -webkit-overflow-scrolling:touch !important;
           scrollbar-width:none !important;
+          padding-left:12px !important;
+          padding-right:12px !important;
         }
         .sidebar::-webkit-scrollbar { display:none !important; width:0 !important; height:0 !important; }
-        .sidebar::before,
-        .sidebar::after { content:''; flex:0 0 12px; }
         .sidebar > * {
-          flex:0 0 auto !important;
-          width:max-content !important;
+          display:inline-flex !important;
+          vertical-align:middle !important;
+          flex:none !important;
+          width:auto !important;
+          min-width:0 !important;
           max-width:none !important;
-          min-width:max-content !important;
+          box-sizing:border-box !important;
         }
-        .sidebar .nav-item { flex:0 0 auto !important; }
+        .sidebar > .nav-label { display:none !important; }
+        .sidebar > .nav-item {
+          width:auto !important;
+          min-width:fit-content !important;
+          max-width:none !important;
+          flex:none !important;
+          white-space:nowrap !important;
+          margin-right:4px !important;
+        }
       `
       document.head.appendChild(style)
+    }
 
-      nav.addEventListener('scroll', () => requestAnimationFrame(clamp), { passive: true })
-      window.addEventListener('resize', clamp, { passive: true })
-      window.addEventListener('orientationchange', () => setTimeout(clamp, 50), { passive: true })
-      nav.addEventListener('click', () => setTimeout(clamp, 0), { passive: true })
-      setTimeout(clamp, 50)
-      setTimeout(clamp, 200)
-      setTimeout(clamp, 500)
+    if (!nav.dataset.aenNavFixed) {
+      nav.dataset.aenNavFixed = '1'
+      // Do not read/write scrollLeft during scroll events. Safari can enter a
+      // layout/scroll feedback loop when scrollLeft is clamped on every frame.
+      const refresh = () => {
+        if (!nav.isConnected) return
+        nav.style.setProperty('overflow-x', 'auto', 'important')
+      }
+      window.addEventListener('resize', refresh, { passive: true })
+      window.addEventListener('orientationchange', () => setTimeout(refresh, 100), { passive: true })
+      nav.addEventListener('click', () => setTimeout(refresh, 0), { passive: true })
     }
 
     return true
@@ -137,7 +143,7 @@
     if (adminWrap) {
       adminWrap.style.setProperty('position', 'absolute', 'important')
       adminWrap.style.setProperty('right', mobile ? '8px' : '10px', 'important')
-      adminWrap.style.setProperty('bottom', mobile ? '3px' : '3px', 'important')
+      adminWrap.style.setProperty('bottom', '3px', 'important')
       adminWrap.style.setProperty('top', 'auto', 'important')
       adminWrap.style.setProperty('left', 'auto', 'important')
       adminWrap.style.setProperty('width', 'auto', 'important')
@@ -146,14 +152,12 @@
       adminWrap.style.setProperty('z-index', '10', 'important')
     }
 
-    const cleanClock = () => {
-      const clockNode = topbar.querySelector('.aen-datetime .aen-clock')
-      if (!clockNode) return
+    const clockNode = topbar.querySelector('.aen-datetime .aen-clock')
+    if (clockNode) {
       const current = clockNode.textContent
       const cleaned = current.replace(/(\d{1,2}:\d{2})(?::\d{2})/g, '$1')
       if (current !== cleaned) clockNode.textContent = cleaned
     }
-    cleanClock()
 
     const styleId = 'aen-final-polish-style'
     if (!document.getElementById(styleId)) {
@@ -178,21 +182,5 @@
     if (apply() || ++tries > 80) clearInterval(timer)
   }, 100)
 
-  const observeClock = () => {
-    const topbar = document.querySelector('.topbar')
-    if (!topbar) return
-    const clock = topbar.querySelector('.aen-datetime .aen-clock')
-    if (!clock || clock.dataset.secondsObserver) return
-    clock.dataset.secondsObserver = '1'
-    const clean = () => {
-      const current = clock.textContent
-      const cleaned = current.replace(/(\d{1,2}:\d{2})(?::\d{2})/g, '$1')
-      if (current !== cleaned) clock.textContent = cleaned
-    }
-    clean()
-    new MutationObserver(clean).observe(clock, { childList: true, characterData: true, subtree: true })
-  }
-
   apply()
-  setTimeout(observeClock, 300)
 })()

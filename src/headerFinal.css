@@ -1,12 +1,13 @@
-/* FINAL MOBILE/DESKTOP HEADER OVERRIDES */
+/* FINAL HEADER COMPOSITION — compact, clean, no overlap */
 .topbar {
   position: relative !important;
   min-height: 0 !important;
-  height: 154px !important;
+  height: 140px !important;
   padding: 0 !important;
   overflow: hidden !important;
   display: block !important;
 }
+
 .topbar .brand-button {
   position: absolute !important;
   inset: 0 !important;
@@ -21,32 +22,36 @@
   text-align: center !important;
   z-index: 2 !important;
 }
+
+/* Real AEN mark: keep the white tile, but enlarge the artwork inside it. */
 .topbar .brand-mark,
 .topbar .aen-logo-mark {
   position: absolute !important;
-  left: 14px !important;
-  top: 14px !important;
-  width: 62px !important;
-  height: 62px !important;
-  min-width: 62px !important;
-  min-height: 62px !important;
+  left: 12px !important;
+  top: 10px !important;
+  width: 68px !important;
+  height: 68px !important;
+  min-width: 68px !important;
+  min-height: 68px !important;
   padding: 0 !important;
   margin: 0 !important;
   background: #fff !important;
-  border: 3px solid rgba(255,255,255,.92) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 5px 16px rgba(0,0,0,.16) !important;
+  border: 2px solid rgba(255,255,255,.95) !important;
+  border-radius: 15px !important;
+  box-shadow: 0 4px 13px rgba(0,0,0,.15) !important;
   overflow: hidden !important;
   display: block !important;
   z-index: 5 !important;
 }
+
 .topbar .aen-exact-logo,
 .topbar .aen-logo-mark img,
 .topbar .brand-mark img {
   position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  left: -8% !important;
+  top: -8% !important;
+  width: 116% !important;
+  height: 116% !important;
   max-width: none !important;
   max-height: none !important;
   object-fit: contain !important;
@@ -56,15 +61,16 @@
   padding: 0 !important;
   border: 0 !important;
   background: #fff !important;
-  transform: none !important;
 }
+
+/* Center title block in its own lane below the top date/time row. */
 .topbar .brand-button > span:last-child {
   position: absolute !important;
   left: 50% !important;
-  top: 57px !important;
+  top: 54px !important;
   transform: translateX(-50%) !important;
-  width: calc(100% - 150px) !important;
-  max-width: 520px !important;
+  width: calc(100% - 100px) !important;
+  max-width: 620px !important;
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -74,53 +80,68 @@
   line-height: 1 !important;
   z-index: 4 !important;
 }
+
 .topbar .brand-button .eyebrow {
   order: 2 !important;
   margin: 2px 0 0 !important;
-  font-size: 10px !important;
+  font-size: 9px !important;
   line-height: 1.15 !important;
-  letter-spacing: .08em !important;
+  letter-spacing: .075em !important;
   font-weight: 800 !important;
   white-space: nowrap !important;
-  color: rgba(255,255,255,.9) !important;
+  color: rgba(255,255,255,.92) !important;
 }
+
 .topbar .brand-button strong {
   order: 1 !important;
   display: block !important;
   margin: 0 !important;
-  font-size: 34px !important;
+  font-size: 32px !important;
   line-height: 1 !important;
   white-space: nowrap !important;
   color: #fff !important;
 }
+
+/* Date first, then time — always at the very top. */
 .topbar .aen-datetime {
   position: absolute !important;
-  top: 14px !important;
+  top: 9px !important;
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
   transform: translateX(-50%) !important;
   width: auto !important;
-  max-width: calc(100% - 170px) !important;
+  max-width: calc(100% - 180px) !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: baseline !important;
   justify-content: center !important;
-  gap: 10px !important;
+  gap: 9px !important;
   white-space: nowrap !important;
   z-index: 8 !important;
   margin: 0 !important;
   padding: 0 !important;
 }
-.topbar .aen-datetime .aen-date { order: 1 !important; font-size: 11px !important; font-weight: 800 !important; line-height: 1.1 !important; color: #fff !important; }
-.topbar .aen-datetime .aen-clock { order: 2 !important; font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #fff !important; }
+.topbar .aen-datetime .aen-date {
+  order: 1 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  color: #fff !important;
+}
+.topbar .aen-datetime .aen-clock {
+  order: 2 !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  color: #fff !important;
+}
 
-/* The action container is the other direct div. Do not use :last-child:
-   the datetime div is appended after it by uiPatch.js. */
+/* Admin stays in its own bottom-right lane. */
 .topbar > div:not(.aen-datetime) {
   position: absolute !important;
   right: 12px !important;
-  bottom: 12px !important;
+  bottom: 9px !important;
   top: auto !important;
   left: auto !important;
   width: auto !important;
@@ -135,33 +156,87 @@
 .topbar > div:not(.aen-datetime) .connection { display: none !important; }
 .topbar > div:not(.aen-datetime) .secondary-button {
   margin: 0 !important;
-  min-height: 38px !important;
-  padding: 7px 14px !important;
-  border-radius: 18px !important;
-  font-size: 16px !important;
+  min-height: 34px !important;
+  padding: 5px 12px !important;
+  border-radius: 16px !important;
+  font-size: 15px !important;
   font-weight: 900 !important;
   background: rgba(255,255,255,.1) !important;
   color: #fff !important;
   border: 1px solid rgba(255,255,255,.28) !important;
-  box-shadow: 0 5px 14px rgba(0,0,0,.12) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12) !important;
 }
+
 @media (max-width: 650px) {
-  .topbar { height: 166px !important; }
+  .topbar { height: 132px !important; }
+
   .topbar .brand-mark,
-  .topbar .aen-logo-mark { left: 12px !important; top: 13px !important; width: 58px !important; height: 58px !important; min-width: 58px !important; min-height: 58px !important; border-radius: 15px !important; }
-  .topbar .aen-datetime { top: 13px !important; left: 78px !important; right: 10px !important; transform: none !important; max-width: none !important; justify-content: flex-start !important; gap: 7px !important; }
+  .topbar .aen-logo-mark {
+    left: 12px !important;
+    top: 9px !important;
+    width: 68px !important;
+    height: 68px !important;
+    min-width: 68px !important;
+    min-height: 68px !important;
+    border-radius: 15px !important;
+  }
+
+  .topbar .aen-exact-logo,
+  .topbar .aen-logo-mark img,
+  .topbar .brand-mark img {
+    left: -10% !important;
+    top: -10% !important;
+    width: 120% !important;
+    height: 120% !important;
+  }
+
+  .topbar .aen-datetime {
+    top: 9px !important;
+    left: 88px !important;
+    right: 10px !important;
+    transform: none !important;
+    max-width: none !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+  }
   .topbar .aen-datetime .aen-date { font-size: 9px !important; }
   .topbar .aen-datetime .aen-clock { font-size: 17px !important; }
-  .topbar .brand-button > span:last-child { left: 50% !important; top: 69px !important; width: calc(100% - 24px) !important; max-width: none !important; }
-  .topbar .brand-button strong { font-size: 31px !important; }
-  .topbar .brand-button .eyebrow { font-size: 8.5px !important; letter-spacing: .065em !important; }
-  .topbar > div:not(.aen-datetime) { right: 12px !important; bottom: 9px !important; }
-  .topbar > div:not(.aen-datetime) .secondary-button { min-height: 34px !important; padding: 5px 12px !important; font-size: 15px !important; border-radius: 16px !important; }
+
+  .topbar .brand-button > span:last-child {
+    left: 50% !important;
+    top: 51px !important;
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+  }
+  .topbar .brand-button strong { font-size: 30px !important; }
+  .topbar .brand-button .eyebrow {
+    font-size: 8.5px !important;
+    letter-spacing: .06em !important;
+  }
+
+  .topbar > div:not(.aen-datetime) {
+    right: 12px !important;
+    bottom: 8px !important;
+  }
+  .topbar > div:not(.aen-datetime) .secondary-button {
+    min-height: 33px !important;
+    padding: 5px 11px !important;
+    font-size: 15px !important;
+    border-radius: 16px !important;
+  }
 }
+
 @media (min-width: 651px) {
-  .topbar { height: 178px !important; }
+  .topbar { height: 150px !important; }
   .topbar .brand-mark,
-  .topbar .aen-logo-mark { left: 20px !important; top: 18px !important; width: 82px !important; height: 82px !important; min-width: 82px !important; min-height: 82px !important; }
-  .topbar .aen-datetime { top: 20px !important; }
-  .topbar .brand-button > span:last-child { top: 73px !important; }
+  .topbar .aen-logo-mark {
+    left: 18px !important;
+    top: 12px !important;
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px !important;
+    min-height: 80px !important;
+  }
+  .topbar .aen-datetime { top: 12px !important; }
+  .topbar .brand-button > span:last-child { top: 58px !important; }
 }

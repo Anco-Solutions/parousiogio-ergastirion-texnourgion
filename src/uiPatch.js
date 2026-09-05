@@ -99,9 +99,12 @@ function installStyles() {
     .aen-clock{font-size:clamp(18px,2vw,27px)!important;line-height:1!important;letter-spacing:.035em!important;font-weight:850!important;font-variant-numeric:tabular-nums!important}
     .aen-date{font-size:clamp(10px,1vw,14px)!important;font-weight:650!important;color:#d9eaff!important;white-space:nowrap!important;text-transform:capitalize!important}
     .layout{display:block!important;min-height:0!important}
-    .sidebar{background:#fff!important;border:0!important;border-bottom:1px solid #dfe7f0!important;padding:10px clamp(12px,4vw,54px)!important;display:flex!important;align-items:center!important;gap:8px!important;overflow-x:auto!important;box-shadow:0 4px 18px rgba(15,23,42,.06)!important}
+    .sidebar{background:#fff!important;border:0!important;border-bottom:1px solid #dfe7f0!important;padding:10px clamp(12px,4vw,54px)!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;touch-action:pan-x!important;overscroll-behavior-x:contain!important;overscroll-behavior-y:none!important;scroll-behavior:auto!important;scroll-snap-type:none!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;box-shadow:0 4px 18px rgba(15,23,42,.06)!important}
+    .sidebar::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+    .sidebar::before,.sidebar::after{content:"";flex:0 0 12px}
+    .sidebar>*{flex:0 0 auto!important;width:max-content!important;max-width:none!important;min-width:max-content!important}
     .nav-label{display:none!important}
-    .nav-item{width:auto!important;min-width:max-content!important;padding:12px 16px!important;border-radius:13px!important;color:#5b6d86!important;font-size:15px!important;font-weight:750!important;gap:9px!important;background:transparent!important}
+    .nav-item{width:auto!important;min-width:max-content!important;flex:0 0 auto!important;padding:12px 16px!important;border-radius:13px!important;color:#5b6d86!important;font-size:15px!important;font-weight:750!important;gap:9px!important;background:transparent!important}
     .nav-item span{width:28px!important;font-size:23px!important}
     .nav-item.active{background:#eaf2ff!important;color:#163f70!important;box-shadow:inset 0 -2px 0 #2f6edb!important}
     main{max-width:1180px!important;padding:34px clamp(18px,4vw,52px) 60px!important}
@@ -141,10 +144,17 @@ function schedulePatch() {
   })
 }
 
-const observer = new MutationObserver(schedulePatch)
-observer.observe(document.documentElement, { childList: true, subtree: true })
-window.addEventListener('change', event => {
-  if (event.target?.matches?.('select[aria-label="Επιλογή ακαδημαϊκής περιόδου"]')) schedulePatch()
-})
+// Keep the patch lightweight: avoid a document-wide MutationObserver on Safari.
 schedulePatch()
+setTimeout(schedulePatch, 100)
+setTimeout(schedulePatch, 300)
+setTimeout(schedulePatch, 700)
+setTimeout(schedulePatch, 1500)
+setTimeout(schedulePatch, 3000)
+
+document.addEventListener('click', (event) => {
+  if (event.target?.closest?.('.nav-item, button, a')) setTimeout(schedulePatch, 0)
+}, { passive: true })
+
+window.addEventListener('popstate', schedulePatch)
 setInterval(updateDateTime, 1000)

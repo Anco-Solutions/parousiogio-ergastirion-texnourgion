@@ -4,7 +4,6 @@ import App from './App'
 import ErrorBoundary from './ErrorBoundary'
 import './styles.css'
 import './readability.css'
-import './uiPatch.js'
 import './mobile.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

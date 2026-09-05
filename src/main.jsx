@@ -6,6 +6,7 @@ import './styles.css'
 import './readability.css'
 import './mobile.css'
 import './finalMobileFix.css'
+import './headerFinal.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

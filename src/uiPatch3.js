@@ -5,16 +5,16 @@
     if (!topbar) return false
 
     const mobile = window.matchMedia('(max-width:650px)').matches
-    topbar.style.setProperty('height', mobile ? '96px' : '108px', 'important')
+    topbar.style.setProperty('height', mobile ? '100px' : '108px', 'important')
     topbar.style.setProperty('min-height', '0', 'important')
     topbar.style.setProperty('overflow', 'hidden', 'important')
 
     const logo = topbar.querySelector('.aen-exact-logo, .aen-logo-mark img, .brand-mark img')
     if (logo) {
       logo.style.setProperty('left', '-2%', 'important')
-      logo.style.setProperty('top', '-2%', 'important')
+      logo.style.setProperty('top', '0', 'important')
       logo.style.setProperty('width', '104%', 'important')
-      logo.style.setProperty('height', '104%', 'important')
+      logo.style.setProperty('height', '100%', 'important')
       logo.style.setProperty('object-fit', 'contain', 'important')
       logo.style.setProperty('object-position', 'center', 'important')
     }

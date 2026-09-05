@@ -1,0 +1,3 @@
+/* Small breathing room between the header date/time row and the attendance navigation. */
+.topbar{padding-bottom:40px!important}
+@media(max-width:650px){.topbar{min-height:204px!important}}

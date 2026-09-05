@@ -20,4 +20,7 @@ setTimeout(() => {
   import('./uiPatch.js').catch((error) => {
     console.error('UI patch could not be loaded:', error)
   })
+  import('./uiPatch2.js').catch((error) => {
+    console.error('Final UI patch could not be loaded:', error)
+  })
 }, 0)

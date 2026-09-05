@@ -19,7 +19,7 @@ function updateDateTime() {
   }
   const now = new Date()
   setText(box.querySelector('.aen-clock'), new Intl.DateTimeFormat('el-GR', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(now))
   setText(box.querySelector('.aen-date'), new Intl.DateTimeFormat('el-GR', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
@@ -157,4 +157,3 @@ document.addEventListener('click', (event) => {
 }, { passive: true })
 
 window.addEventListener('popstate', schedulePatch)
-setInterval(updateDateTime, 1000)

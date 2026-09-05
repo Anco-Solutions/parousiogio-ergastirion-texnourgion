@@ -1,0 +1,16 @@
+{
+  "name": "Παρουσιολόγιο Εργαστηρίων Τεχνολογιών",
+  "short_name": "Παρουσιολόγιο",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#eef3fb",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "./aem-logo.svg",
+      "sizes": "225x225",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

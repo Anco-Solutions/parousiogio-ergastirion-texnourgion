@@ -1,11 +1,72 @@
-// Final header polish: compact title lane, HH:MM clock, safe DOM updates.
+// Final header polish + stable horizontal navigation.
 (function () {
+  const installNavFix = () => {
+    const nav = document.querySelector('.sidebar')
+    if (!nav) return false
+
+    if (!nav.dataset.aenNavFixed) {
+      nav.dataset.aenNavFixed = '1'
+
+      const clamp = () => {
+        const max = Math.max(0, nav.scrollWidth - nav.clientWidth)
+        if (nav.scrollLeft < 0) nav.scrollLeft = 0
+        else if (nav.scrollLeft > max) nav.scrollLeft = max
+      }
+
+      const style = document.createElement('style')
+      style.id = 'aen-stable-horizontal-nav'
+      style.textContent = `
+        .sidebar {
+          display:flex !important;
+          flex-direction:row !important;
+          flex-wrap:nowrap !important;
+          align-items:center !important;
+          justify-content:flex-start !important;
+          width:100% !important;
+          max-width:100% !important;
+          min-width:0 !important;
+          box-sizing:border-box !important;
+          overflow-x:auto !important;
+          overflow-y:hidden !important;
+          touch-action:pan-x !important;
+          overscroll-behavior-x:contain !important;
+          overscroll-behavior-y:none !important;
+          scroll-behavior:auto !important;
+          scroll-snap-type:none !important;
+          -webkit-overflow-scrolling:touch !important;
+          scrollbar-width:none !important;
+        }
+        .sidebar::-webkit-scrollbar { display:none !important; width:0 !important; height:0 !important; }
+        .sidebar::before,
+        .sidebar::after { content:''; flex:0 0 12px; }
+        .sidebar > * {
+          flex:0 0 auto !important;
+          width:max-content !important;
+          max-width:none !important;
+          min-width:max-content !important;
+        }
+        .sidebar .nav-item { flex:0 0 auto !important; }
+      `
+      document.head.appendChild(style)
+
+      nav.addEventListener('scroll', () => requestAnimationFrame(clamp), { passive: true })
+      window.addEventListener('resize', clamp, { passive: true })
+      window.addEventListener('orientationchange', () => setTimeout(clamp, 50), { passive: true })
+      nav.addEventListener('click', () => setTimeout(clamp, 0), { passive: true })
+      setTimeout(clamp, 50)
+      setTimeout(clamp, 200)
+      setTimeout(clamp, 500)
+    }
+
+    return true
+  }
+
   const apply = () => {
     const topbar = document.querySelector('.topbar')
     if (!topbar) return false
 
     const mobile = window.matchMedia('(max-width:650px)').matches
-    topbar.style.setProperty('height', mobile ? '100px' : '108px', 'important')
+    topbar.style.setProperty('height', mobile ? '104px' : '110px', 'important')
     topbar.style.setProperty('min-height', '0', 'important')
     topbar.style.setProperty('overflow', 'hidden', 'important')
 
@@ -76,7 +137,7 @@
     if (adminWrap) {
       adminWrap.style.setProperty('position', 'absolute', 'important')
       adminWrap.style.setProperty('right', mobile ? '8px' : '10px', 'important')
-      adminWrap.style.setProperty('bottom', '0px', 'important')
+      adminWrap.style.setProperty('bottom', mobile ? '3px' : '3px', 'important')
       adminWrap.style.setProperty('top', 'auto', 'important')
       adminWrap.style.setProperty('left', 'auto', 'important')
       adminWrap.style.setProperty('width', 'auto', 'important')
@@ -107,6 +168,8 @@
       `
       document.head.appendChild(style)
     }
+
+    installNavFix()
     return true
   }
 

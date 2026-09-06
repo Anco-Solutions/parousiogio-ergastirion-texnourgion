@@ -7,10 +7,10 @@
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "./aem-logo.svg",
-      "sizes": "225x225",
+      "src": "./icon-192.svg",
+      "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }

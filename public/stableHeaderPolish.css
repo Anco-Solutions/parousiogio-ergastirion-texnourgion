@@ -1,0 +1,32 @@
+/* Tiny static typography refinements; no runtime positioning. */
+.topbar .brand-mark { background-size: 108% 108% !important; background-position: center !important; }
+.topbar .brand-button > span:last-child { top: 53px !important; }
+.topbar .brand-button strong {
+  font-size: 0 !important;
+}
+.topbar .brand-button strong::after {
+  content: "Παρουσιολόγια";
+  display: block;
+  font-size: 31px;
+  line-height: 1;
+  letter-spacing: -.035em;
+  font-weight: 900;
+}
+.topbar .brand-button .eyebrow {
+  font-size: 0 !important;
+  margin-top: 12px !important;
+}
+.topbar .brand-button .eyebrow::after {
+  content: "ΑΕΝ ΑΣΠΡΟΠΥΡΓΟΥ • ΣΧΟΛΗ ΜΗΧΑΝΙΚΩΝ";
+  display: block;
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: .08em;
+  font-weight: 800;
+}
+@media (min-width: 651px) {
+  .topbar .brand-button > span:last-child { top: 63px !important; }
+  .topbar .brand-button strong::after { font-size: 50px; }
+  .topbar .brand-button .eyebrow { margin-top: 13px !important; }
+  .topbar .brand-button .eyebrow::after { font-size: 13px; }
+}

@@ -30,19 +30,29 @@
     if (!topbar) return false
     const mobile = window.matchMedia('(max-width:650px)').matches
 
-    // Keep the header height in sync with headerFinal.css. The previous 100/108px
-    // runtime override conflicted with the CSS header and made vertical alignment
-    // dependent on which patch executed last.
-    topbar.style.setProperty('height', mobile ? '116px' : '132px', 'important')
+    // The runtime uiPatch stylesheet sets the logo to 190/132/92px later than
+    // headerFinal.css. Override those dimensions here so the logo fits entirely
+    // inside the header and is centered in the full header box.
+    const headerHeight = mobile ? 116 : 132
+    const logoSize = mobile ? 92 : (window.matchMedia('(max-width:900px)').matches ? 92 : 78)
+    topbar.style.setProperty('height', `${headerHeight}px`, 'important')
     topbar.style.setProperty('min-height','0','important')
+    topbar.style.setProperty('padding','0','important')
+    topbar.style.setProperty('box-sizing','border-box','important')
     topbar.style.setProperty('overflow','hidden','important')
 
     const mark = topbar.querySelector('.aen-logo-mark, .brand-mark')
     if (mark) {
-      // Preserve the current horizontal position; vertical position is exactly
-      // centered against the complete header box.
+      mark.style.setProperty('left', mobile ? '10px' : (window.matchMedia('(max-width:900px)').matches ? '12px' : '16px'), 'important')
       mark.style.setProperty('top','50%','important')
       mark.style.setProperty('transform','translateY(-50%)','important')
+      mark.style.setProperty('width',`${logoSize}px`,'important')
+      mark.style.setProperty('height',`${logoSize}px`,'important')
+      mark.style.setProperty('min-width',`${logoSize}px`,'important')
+      mark.style.setProperty('min-height',`${logoSize}px`,'important')
+      mark.style.setProperty('margin','0','important')
+      mark.style.setProperty('padding','0','important')
+      mark.style.setProperty('box-sizing','border-box','important')
     }
     const logo = topbar.querySelector('.aen-exact-logo, .aen-logo-mark img, .brand-mark img')
     if (logo) {

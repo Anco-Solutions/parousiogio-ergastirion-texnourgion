@@ -86,51 +86,67 @@ function AuditView() {
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase()
     if (!term) return rows
-    return rows.filter((row) => Object.values(row).some((value) => JSON.stringify(value ?? '').toLowerCase().includes(term)))
+    return rows.filter((row) => JSON.stringify(row).toLowerCase().includes(term))
   }, [rows, search])
 
+  function changedFields(row) {
+    const oldData = row.old_data || {}
+    const newData = row.new_data || {}
+    const keys = [...new Set([...Object.keys(oldData), ...Object.keys(newData)])]
+    return keys.filter((key) => JSON.stringify(oldData[key]) !== JSON.stringify(newData[key]))
+  }
+
   return <section className="data-page">
-    <div className="page-title-row"><div><p className="kicker">Έλεγχος</p><h1>🧾 Ιστορικό ενεργειών</h1><p>Ποιος άλλαξε τι και πότε.</p></div><span className="count-badge">{filteredRows.length} εγγραφές</span></div>
+    <div className="page-title-row"><div><p className="kicker">Έλεγχος & ιχνηλασιμότητα</p><h1>🧾 Ιστορικό ενεργειών</h1><p>Κεντρικό ιστορικό των αλλαγών που καταγράφονται στις επιχειρησιακές εγγραφές.</p></div><span className="count-badge">{filteredRows.length} ενέργειες</span></div>
+    <div className="audit-note"><strong>Ελεγχόμενη καταγραφή</strong><span>Για κάθε προσθήκη, τροποποίηση ή διαγραφή αποθηκεύονται χρόνος, χρήστης και στοιχεία πριν/μετά.</span></div>
     <div className="toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Αναζήτηση στο ιστορικό…" aria-label="Αναζήτηση ιστορικού" /><button type="button" className="secondary-button" onClick={loadAudit}>↻ Ανανέωση</button></div>
-    <div className="data-card table-wrap">{loading ? <div className="loading">Φόρτωση ιστορικού…</div> : error ? <div className="error-box">Αδυναμία φόρτωσης: {error}</div> : filteredRows.length === 0 ? <div className="empty-state compact"><div className="empty-icon">🧾</div><h2>Δεν υπάρχουν καταγεγραμμένες ενέργειες</h2></div> : <table><thead><tr><th>Πίνακας</th><th>Ενέργεια</th><th>Εγγραφή</th><th>Ποιος</th><th>Πότε</th></tr></thead><tbody>{filteredRows.map((row) => <tr key={row.id}><td>{row.table_name}</td><td>{row.action}</td><td>{row.record_id ?? '—'}</td><td>{row.changed_by ?? '—'}</td><td>{row.changed_at ? new Date(row.changed_at).toLocaleString('el-GR') : '—'}</td></tr>)}</tbody></table>}</div>
+    <div className="data-card table-wrap">{loading ? <div className="loading">Φόρτωση ιστορικού…</div> : error ? <div className="error-box">Αδυναμία φόρτωσης ιστορικού: {error}<br /><small>Η πρόσβαση στο ιστορικό απαιτεί συνδεδεμένο χρήστη.</small></div> : rows.length === 0 ? <div className="empty-state compact"><div className="empty-icon">🧾</div><h2>Δεν υπάρχουν ακόμη ενέργειες</h2><p>Μόλις καταχωρηθεί ή τροποποιηθεί μια εγγραφή, το σύστημα θα δημιουργήσει αυτόματα ιστορικό.</p></div> : <table><thead><tr><th>Ημερομηνία / ώρα</th><th>Χρήστης</th><th>Ενέργεια</th><th>Πίνακας</th><th>Εγγραφή</th><th>Αλλαγές</th></tr></thead><tbody>{filteredRows.map((row) => { const fields = changedFields(row); return <tr key={row.id}><td>{new Date(row.changed_at).toLocaleString('el-GR')}</td><td className="mono-cell">{row.changed_by || 'Σύστημα / μη ταυτοποιημένος χρήστης'}</td><td><span className={`action-badge action-${row.action.toLowerCase()}`}>{row.action}</span></td><td>{row.table_name}</td><td className="mono-cell">{row.record_id || '—'}</td><td>{row.action === 'UPDATE' ? (fields.length ? fields.join(', ') : 'Χωρίς μεταβολή') : row.action === 'INSERT' ? 'Νέα εγγραφή' : 'Διαγραφή εγγραφής'}</td></tr> })}</tbody></table>}</div>
   </section>
 }
 
 function LoginView({ onDone }) {
+  const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  async function handleLogin(event) {
+  async function signIn(event) {
     event.preventDefault()
-    setLoading(true)
+    setBusy(true)
     setError('')
-    if (!supabase) { setError('Το Supabase δεν έχει ρυθμιστεί.'); setLoading(false); return }
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email: 'ballas.aen@gmail.com', password })
-    if (loginError) setError(loginError.message)
+    if (username.trim().toLowerCase() !== 'admin') {
+      setError('Ο χρήστης πρέπει να είναι admin.')
+      setBusy(false)
+      return
+    }
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: 'ballas.aen@gmail.com', password })
+    if (signInError) setError(signInError.message)
     else onDone()
-    setLoading(false)
+    setBusy(false)
   }
 
-  return <section className="module-page"><p className="kicker">Πρόσβαση</p><h1>🔐 Διαχειριστής</h1><div className="data-card login-card"><form onSubmit={handleLogin}><label>Κωδικός πρόσβασης<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><button className="primary-button" type="submit" disabled={loading}>{loading ? 'Έλεγχος…' : 'Είσοδος'}</button>{error && <p className="error-box">{error}</p>}</form></div></section>
+  return <section className="data-page"><div className="page-title-row"><div><p className="kicker">Ασφάλεια</p><h1>🔐 Σύνδεση διαχειριστή</h1><p>Σύνδεση ως <strong>admin</strong> για πρόσβαση στη διαχείριση.</p></div></div><form className="data-card" style={{ maxWidth: 520, padding: '1.25rem' }} onSubmit={signIn}><label>Χρήστης<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label><label style={{ marginTop: '0.9rem' }}>Κωδικός<div style={{ position: 'relative' }}><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '3.2rem' }} /><button type="button" aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'} title={showPassword ? 'Απόκρυψη κωδικού' : 'Αποκάλυψη κωδικού'} onClick={() => setShowPassword((visible) => !visible)} style={{ position: 'absolute', right: '0.55rem', top: '50%', transform: 'translateY(-50%)', border: 0, background: 'transparent', cursor: 'pointer', fontSize: '1.35rem', padding: '0.25rem' }}>{showPassword ? '🙈' : '👁️'}</button></div></label><button className="primary-button" style={{ marginTop: '1rem' }} disabled={busy}>{busy ? 'Σύνδεση…' : '🔓 Σύνδεση'}</button>{error && <div className="error-box" style={{ marginTop: '1rem' }}>Αποτυχία σύνδεσης: {error}</div>}</form></section>
 }
 
 function App() {
-  const [session, setSession] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [activeView, setActiveView] = useState('dashboard')
   const [status, setStatus] = useState('Έλεγχος σύνδεσης…')
   const [studentCount, setStudentCount] = useState(null)
   const [semesters, setSemesters] = useState([])
   const [semesterError, setSemesterError] = useState('')
-  const [selectedSemesterCode, setSelectedSemesterCode] = useState(() => localStorage.getItem('parousiologio_current_semester') || DEFAULT_SEMESTER_CODE)
-  const [academicPeriod, setAcademicPeriod] = useState(() => localStorage.getItem('parousiologio_academic_period') || DEFAULT_ACADEMIC_PERIOD)
+  const [academicPeriod, setAcademicPeriod] = useState(() => typeof window === 'undefined' ? DEFAULT_ACADEMIC_PERIOD : localStorage.getItem('parousiologio_academic_period') || DEFAULT_ACADEMIC_PERIOD)
+  const [selectedSemesterCode, setSelectedSemesterCode] = useState(() => typeof window === 'undefined' ? DEFAULT_SEMESTER_CODE : localStorage.getItem('parousiologio_current_semester') || DEFAULT_SEMESTER_CODE)
+  const [session, setSession] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    if (!supabase) return
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
-    return () => listener.subscription.unsubscribe()
+    if (!supabase) { setAuthChecked(true); return }
+    let mounted = true
+    supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setAuthChecked(true) } }).catch(() => { if (mounted) setAuthChecked(true) })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setAuthChecked(true); if (!nextSession) { setIsAdmin(false); if (activeView === 'admin-workshops') setActiveView('dashboard') } })
+    return () => { mounted = false; listener.subscription.unsubscribe() }
   }, [])
 
   useEffect(() => {
@@ -178,10 +194,7 @@ function App() {
 
   return <div className="app-shell">
     <header className="topbar">
-      <button className="brand-button" type="button" onClick={() => setActiveView('dashboard')} aria-label="Αρχική σελίδα Παρουσιολογίου">
-        <span className="brand-mark"><img className="aen-logo-image" src="/parousiogio-ergastirion-texnourgion/aem-logo.svg" alt="ΑΕΝ Ασπροπύργου - Σχολή Μηχανικών" /></span>
-        <span><span className="eyebrow">ΑΕΝ ΑΣΠΡΟΠΥΡΓΟΥ • ΣΧΟΛΗ ΜΗΧΑΝΙΚΩΝ</span><strong>Παρουσιολόγια</strong></span>
-      </button>
+      <button className="brand-button" type="button" onClick={() => setActiveView('dashboard')}><span className="brand-mark">A</span><span><span className="eyebrow">AEN • ΕΡΓΑΣΤΗΡΙΑ ΤΕΧΝΟΛΟΓΙΩΝ</span><strong>Παρουσιολόγιο</strong></span></button>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}><div className={`connection ${status.includes('Σφάλμα') ? 'error' : ''}`}><span className="dot" />{status}</div>{session ? <><span className="count-badge">{isAdmin ? '👑 Admin' : '👤 Χρήστης'}</span><button className="secondary-button" type="button" onClick={signOut}>Έξοδος</button></> : <button className="secondary-button" type="button" onClick={openAdmin}>🔐 Admin</button>}</div>
     </header>
 
@@ -197,7 +210,7 @@ function App() {
 
       <main>
         {activeView === 'dashboard' ? <>
-          <section className="hero"><div><p className="kicker">Κεντρικός πίνακας</p><h1>Παρουσιολόγιο Εργαστηρίων Τεχνουργείων</h1><p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p></div><div className="semester-card"><span>Ακαδημαϊκή περίοδος</span><select className="semester-select" value={academicPeriod} onChange={handleAcademicPeriodChange} aria-label="Επιλογή ακαδημαϊκής περιόδου">{ACADEMIC_PERIODS.map((period) => <option key={period.code} value={period.code}>{period.name}</option>)}</select><span style={{ marginTop: '0.65rem' }}>Εξάμηνο</span>{semesters.length > 0 ? <select className="semester-select" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label="Επιλογή τρέχοντος εξαμήνου">{semesters.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}</select> : <strong>{semesterError ? 'Σφάλμα φόρτωσης' : 'Φόρτωση…'}</strong>}<small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Ανάκτηση από τον πίνακα semesters'}</small></div></section>
+          <section className="hero"><div><p className="kicker">Κεντρικός πίνακας</p><h1>Παρουσιολόγιο Εργαστηρίων Τεχνολογιών</h1><p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p></div><div className="semester-card"><span>Ακαδημαϊκή περίοδος</span><select className="semester-select" value={academicPeriod} onChange={handleAcademicPeriodChange} aria-label="Επιλογή ακαδημαϊκής περιόδου">{ACADEMIC_PERIODS.map((period) => <option key={period.code} value={period.code}>{period.name}</option>)}</select><span style={{ marginTop: '0.65rem' }}>Εξάμηνο</span>{semesters.length > 0 ? <select className="semester-select" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label="Επιλογή τρέχοντος εξαμήνου">{semesters.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}</select> : <strong>{semesterError ? 'Σφάλμα φόρτωσης' : 'Φόρτωση…'}</strong>}<small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Ανάκτηση από τον πίνακα semesters'}</small></div></section>
           <section className="stats"><div className="stat-card"><span>Σπουδαστές</span><strong>{studentCount === null ? '—' : studentCount}</strong></div><div className="stat-card"><span>Παρουσίες</span><strong>—</strong></div><div className="stat-card"><span>Σημερινά εργαστήρια</span><strong>—</strong></div></section>
           <section><div className="section-heading"><p className="kicker">Γρήγορη πρόσβαση</p><h2>Ενότητες εφαρμογής</h2></div><div className="module-grid">{modules.map(([icon, title, table, id]) => <button className="module-card" key={id} onClick={() => setActiveView(id)} type="button"><span className="module-icon">{icon}</span><span><strong>{title}</strong><small>{table}</small></span><span className="arrow">→</span></button>)}</div></section>
         </> : activeView === 'students' ? <StudentsView /> : activeView === 'audit' ? <AuditView /> : activeView === 'teacher-arrival' ? <TeacherArrivalView /> : activeView === 'admin-login' ? <LoginView onDone={() => setActiveView('admin-workshops')} /> : activeView === 'admin-workshops' ? (isAdmin ? <AdminWorkshopsView /> : <LoginView onDone={() => setActiveView('admin-workshops')} />) : <section className="module-page"><p className="kicker">Ενότητα εφαρμογής</p><div className="page-title-row"><div><h1>{activeModule?.[0]} {activeModule?.[1]}</h1><p>Η ενότητα θα συνδεθεί με τα πραγματικά δεδομένα του Supabase.</p></div><span className="table-badge">public.{activeModule?.[2]}</span></div><div className="empty-state"><div className="empty-icon">{activeModule?.[0]}</div><h2>Έτοιμη για υλοποίηση</h2><p>Το κέλυφος λειτουργεί. Επόμενο βήμα: η πραγματική λειτουργία της συγκεκριμένης ενότητας.</p></div></section>}

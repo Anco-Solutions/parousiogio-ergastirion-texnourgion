@@ -1,3 +1,0 @@
-/* Small breathing room between the header date/time row and the attendance navigation. */
-.topbar:has(.aen-datetime){padding-bottom:40px!important}
-@media(max-width:650px){.topbar:has(.aen-datetime){min-height:204px!important}}

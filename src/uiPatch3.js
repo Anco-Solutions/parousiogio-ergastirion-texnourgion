@@ -29,12 +29,10 @@
     const topbar = document.querySelector('.topbar')
     if (!topbar) return false
     const mobile = window.matchMedia('(max-width:650px)').matches
+    const tablet = window.matchMedia('(max-width:900px)').matches
 
-    // Keep the header box and the logo's horizontal position unchanged.
-    // The source artwork has optical whitespace, so the image itself needs a
-    // small upward correction while its containing mark remains truly centered.
     const headerHeight = mobile ? 116 : 132
-    const logoSize = mobile ? 92 : (window.matchMedia('(max-width:900px)').matches ? 92 : 78)
+    const logoSize = mobile ? 92 : (tablet ? 92 : 78)
     topbar.style.setProperty('height', `${headerHeight}px`, 'important')
     topbar.style.setProperty('min-height','0','important')
     topbar.style.setProperty('padding','0','important')
@@ -43,7 +41,7 @@
 
     const mark = topbar.querySelector('.aen-logo-mark, .brand-mark')
     if (mark) {
-      mark.style.setProperty('left', mobile ? '10px' : (window.matchMedia('(max-width:900px)').matches ? '12px' : '16px'), 'important')
+      mark.style.setProperty('left', mobile ? '10px' : (tablet ? '12px' : '16px'), 'important')
       mark.style.setProperty('top','50%','important')
       mark.style.setProperty('transform','translateY(-50%)','important')
       mark.style.setProperty('width',`${logoSize}px`,'important')
@@ -54,15 +52,20 @@
       mark.style.setProperty('padding','0','important')
       mark.style.setProperty('box-sizing','border-box','important')
     }
+
     const logo = topbar.querySelector('.aen-exact-logo, .aen-logo-mark img, .brand-mark img')
     if (logo) {
+      // The container is the vertical reference. Keep its X position untouched;
+      // position the actual artwork inside it so the visible emblem is centered.
+      logo.style.setProperty('position','absolute','important')
       logo.style.setProperty('left','-2%','important')
-      logo.style.setProperty('top','0','important')
+      logo.style.setProperty('top','50%','important')
       logo.style.setProperty('width','104%','important')
-      logo.style.setProperty('height','100%','important')
+      logo.style.setProperty('height','104%','important')
       logo.style.setProperty('object-fit','contain','important')
       logo.style.setProperty('object-position','center','important')
-      logo.style.setProperty('transform', mobile ? 'translateY(-7px)' : 'translateY(-6px)', 'important')
+      logo.style.setProperty('transform','translateY(-50%)','important')
+      logo.style.setProperty('display','block','important')
     }
 
     const eyebrow = topbar.querySelector('.eyebrow')

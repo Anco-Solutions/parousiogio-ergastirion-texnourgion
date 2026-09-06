@@ -25,21 +25,39 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          /* Give the two header rows more deliberate breathing room. */
+          /* Header has enough height for the logo to sit fully inside it. */
           .topbar:has(.aen-datetime) {
             min-height: 240px !important;
-            padding-bottom: 36px !important;
-          }
-
-          /* Keep the AEN logo larger than either text row and centered
-             vertically in the full header, rather than aligned to the top. */
-          .brand-button {
-            position: relative !important;
-            align-items: center !important;
-            min-height: 100% !important;
-            padding-left: 108px !important;
+            height: 240px !important;
+            padding: 0 14px !important;
             box-sizing: border-box !important;
           }
+
+          /* The logo is an independent visual anchor: exactly centered
+             vertically in the whole header and larger than either text row. */
+          .brand-button {
+            position: absolute !important;
+            left: 14px !important;
+            right: 14px !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            width: auto !important;
+            max-width: none !important;
+            min-height: 240px !important;
+            height: 240px !important;
+            margin: 0 !important;
+            padding: 0 0 0 108px !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+
+          .brand-button > span:last-child {
+            position: relative !important;
+            top: 18px !important;
+            min-width: 0 !important;
+          }
+
           .aen-logo-mark {
             position: absolute !important;
             left: 0 !important;
@@ -49,12 +67,21 @@
             height: 92px !important;
             min-width: 92px !important;
             min-height: 92px !important;
+            margin: 0 !important;
+          }
+
+          /* The date/time row stays above the title row. */
+          .aen-datetime {
+            top: 28px !important;
+            bottom: auto !important;
+            right: 14px !important;
           }
 
           .sidebar {
             padding-left: 0 !important;
             padding-right: 12px !important;
           }
+
           /* About 1 mm of breathing room from the left screen edge. */
           .sidebar > .nav-item:first-child {
             margin-left: 4px !important;

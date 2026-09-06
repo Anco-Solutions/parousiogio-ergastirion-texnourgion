@@ -29,13 +29,18 @@
     const topbar = document.querySelector('.topbar')
     if (!topbar) return false
     const mobile = window.matchMedia('(max-width:650px)').matches
-    topbar.style.setProperty('height', mobile ? '100px' : '108px', 'important')
+
+    // Keep the header height in sync with headerFinal.css. The previous 100/108px
+    // runtime override conflicted with the CSS header and made vertical alignment
+    // dependent on which patch executed last.
+    topbar.style.setProperty('height', mobile ? '116px' : '132px', 'important')
     topbar.style.setProperty('min-height','0','important')
     topbar.style.setProperty('overflow','hidden','important')
 
     const mark = topbar.querySelector('.aen-logo-mark, .brand-mark')
     if (mark) {
-      // Keep the existing horizontal position; only restore true vertical centering.
+      // Preserve the current horizontal position; vertical position is exactly
+      // centered against the complete header box.
       mark.style.setProperty('top','50%','important')
       mark.style.setProperty('transform','translateY(-50%)','important')
     }

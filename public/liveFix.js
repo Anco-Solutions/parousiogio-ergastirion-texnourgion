@@ -25,16 +25,17 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          /* The header is deliberately taller so the two text rows have air. */
+          /* Mobile header: fixed height so the logo has one unambiguous vertical center. */
           .topbar:has(.aen-datetime) {
+            position: relative !important;
             min-height: 240px !important;
             height: 240px !important;
             padding: 0 14px !important;
             box-sizing: border-box !important;
           }
 
-          /* The brand occupies the full header height. */
-          .brand-button {
+          /* Keep the brand in the header, but do not let its flex layout position the logo. */
+          .topbar:has(.aen-datetime) .brand-button {
             position: absolute !important;
             left: 14px !important;
             right: 14px !important;
@@ -42,22 +43,22 @@
             bottom: 0 !important;
             width: auto !important;
             max-width: none !important;
+            min-width: 0 !important;
             min-height: 240px !important;
             height: 240px !important;
             margin: 0 !important;
             padding: 0 0 0 108px !important;
             box-sizing: border-box !important;
-            display: flex !important;
-            align-items: center !important;
+            display: block !important;
           }
 
-          /* EXACT vertical centering: 92px logo inside a 240px header = 74px top. */
-          .brand-button .aen-logo-mark {
+          /* Single source of truth: logo center = header center. */
+          .topbar:has(.aen-datetime) .brand-button .aen-logo-mark {
             position: absolute !important;
             left: 0 !important;
-            top: 74px !important;
+            top: 50% !important;
             bottom: auto !important;
-            transform: none !important;
+            transform: translateY(-50%) !important;
             width: 92px !important;
             height: 92px !important;
             min-width: 92px !important;
@@ -68,13 +69,15 @@
             z-index: 20 !important;
           }
 
-          .brand-button > span:last-child {
-            position: relative !important;
-            top: 18px !important;
+          .topbar:has(.aen-datetime) .brand-button > span:last-child {
+            position: absolute !important;
+            left: 108px !important;
+            right: 0 !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
             min-width: 0 !important;
           }
 
-          /* Date/time stays on the first row. */
           .aen-datetime {
             top: 28px !important;
             bottom: auto !important;

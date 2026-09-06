@@ -30,9 +30,9 @@
     if (!topbar) return false
     const mobile = window.matchMedia('(max-width:650px)').matches
 
-    // The runtime uiPatch stylesheet sets the logo to 190/132/92px later than
-    // headerFinal.css. Override those dimensions here so the logo fits entirely
-    // inside the header and is centered in the full header box.
+    // Keep the header box and the logo's horizontal position unchanged.
+    // The source artwork has optical whitespace, so the image itself needs a
+    // small upward correction while its containing mark remains truly centered.
     const headerHeight = mobile ? 116 : 132
     const logoSize = mobile ? 92 : (window.matchMedia('(max-width:900px)').matches ? 92 : 78)
     topbar.style.setProperty('height', `${headerHeight}px`, 'important')
@@ -62,6 +62,7 @@
       logo.style.setProperty('height','100%','important')
       logo.style.setProperty('object-fit','contain','important')
       logo.style.setProperty('object-position','center','important')
+      logo.style.setProperty('transform', mobile ? 'translateY(-7px)' : 'translateY(-6px)', 'important')
     }
 
     const eyebrow = topbar.querySelector('.eyebrow')

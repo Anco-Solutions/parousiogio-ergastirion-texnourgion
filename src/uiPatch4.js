@@ -1,6 +1,5 @@
-// Authoritative final header logo positioning.
-// The logo must be positioned against the FULL header, not the brand button.
-// This preserves its current horizontal position and changes only its Y anchor.
+// Authoritative final header logo positioning + two tiny title-spacing refinements.
+// Everything else stays on the known-good header geometry.
 (function () {
   const apply = () => {
     const topbar = document.querySelector('.topbar')
@@ -53,6 +52,24 @@
       logo.style.setProperty('transform', 'none', 'important')
       logo.style.setProperty('margin', '0', 'important')
     }
+
+    // ONLY requested title adjustment: center the title block in the space
+    // between the logo and the right edge, instead of letting it crowd the logo.
+    const titleLane = topbar.querySelector('.brand-button > span:last-child')
+    if (titleLane) {
+      const logoRight = (parseFloat(mark.dataset.preservedHeaderLeft) || 0) + (mobile ? 92 : 92)
+      titleLane.style.setProperty('position', 'absolute', 'important')
+      titleLane.style.setProperty('left', mobile ? `${logoRight + 1}px` : '108px', 'important')
+      titleLane.style.setProperty('right', mobile ? '8px' : '108px', 'important')
+      titleLane.style.setProperty('top', mobile ? '56px' : '38px', 'important')
+      titleLane.style.setProperty('width', 'auto', 'important')
+      titleLane.style.setProperty('max-width', 'none', 'important')
+      titleLane.style.setProperty('transform', 'none', 'important')
+      titleLane.style.setProperty('display', 'flex', 'important')
+      titleLane.style.setProperty('align-items', 'center', 'important')
+      titleLane.style.setProperty('justify-content', 'center', 'important')
+      titleLane.style.setProperty('text-align', 'center', 'important')
+    }
   }
 
   apply()
@@ -68,7 +85,5 @@
     attributeFilter: ['style', 'class'],
   })
 
-  // Keep this authoritative while the page is open because older UI patches
-  // contain their own timers and may otherwise restore their old positioning.
   window.addEventListener('beforeunload', () => clearInterval(timer), { once: true })
 })()

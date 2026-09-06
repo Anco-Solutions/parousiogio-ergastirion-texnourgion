@@ -90,6 +90,9 @@
         }
       `
       document.head.appendChild(style)
+    } else {
+      /* Keep this override after React's dynamically injected CSS. */
+      document.head.appendChild(style)
     }
   }
 

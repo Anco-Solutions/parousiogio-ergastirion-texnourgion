@@ -25,7 +25,6 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          /* Mobile header: fixed height so the logo has one unambiguous vertical center. */
           .topbar:has(.aen-datetime) {
             position: relative !important;
             min-height: 240px !important;
@@ -34,7 +33,6 @@
             box-sizing: border-box !important;
           }
 
-          /* Keep the brand in the header, but do not let its flex layout position the logo. */
           .topbar:has(.aen-datetime) .brand-button {
             position: absolute !important;
             left: 14px !important;
@@ -52,7 +50,6 @@
             display: block !important;
           }
 
-          /* Single source of truth: logo center = header center. */
           .topbar:has(.aen-datetime) .brand-button .aen-logo-mark {
             position: absolute !important;
             left: 0 !important;
@@ -69,12 +66,13 @@
             z-index: 20 !important;
           }
 
+          /* Keep the title at the known-good upper position; only the horizontal centering was refined. */
           .topbar:has(.aen-datetime) .brand-button > span:last-child {
             position: absolute !important;
             left: 108px !important;
             right: 0 !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
+            top: 56px !important;
+            transform: none !important;
             min-width: 0 !important;
           }
 

@@ -16,19 +16,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Load the visual compatibility patches only after React has mounted.
-// If they fail, the application itself remains usable.
-setTimeout(() => {
-  import('./uiPatch.js').catch((error) => {
-    console.error('UI patch could not be loaded:', error)
-  })
-  import('./uiPatch2.js').catch((error) => {
-    console.error('Final UI patch could not be loaded:', error)
-  })
-  import('./uiPatch3.js').catch((error) => {
-    console.error('Header polish patch could not be loaded:', error)
-  })
-  import('./uiPatch4.js').catch((error) => {
-    console.error('Authoritative logo patch could not be loaded:', error)
-  })
+// Load the visual patches in a STRICT sequence. The older patches contain
+// persistent timers, so loading them concurrently allowed a later patch to
+// undo the final logo positioning. uiPatch4 must always be the last one.
+setTimeout(async () => {
+  try {
+    await import('./uiPatch.js')
+    await import('./uiPatch2.js')
+    await import('./uiPatch3.js')
+    await import('./uiPatch4.js')
+  } catch (error) {
+    console.error('UI patch loading failed:', error)
+  }
 }, 0)

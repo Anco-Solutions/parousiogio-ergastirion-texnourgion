@@ -28,4 +28,7 @@ setTimeout(() => {
   import('./uiPatch3.js').catch((error) => {
     console.error('Header polish patch could not be loaded:', error)
   })
+  import('./uiPatch4.js').catch((error) => {
+    console.error('Authoritative logo patch could not be loaded:', error)
+  })
 }, 0)

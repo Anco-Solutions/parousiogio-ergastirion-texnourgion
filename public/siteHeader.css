@@ -46,7 +46,11 @@
   box-sizing: border-box !important;
   border-radius: 22px !important;
   border: 2px solid rgba(255,255,255,.92) !important;
-  background: #fff url('./aem-logo.svg') center / 108% 108% no-repeat !important;
+  background-color: #fff !important;
+  background-image: url('./aem-logo.svg') !important;
+  background-position: center !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
   color: transparent !important;
   font-size: 0 !important;
   overflow: hidden !important;
@@ -54,7 +58,7 @@
 }
 .topbar .brand-button > span:last-child {
   position: absolute !important;
-  left: 148px !important;
+  left: 160px !important;
   right: 7px !important;
   top: 57px !important;
   display: flex !important;

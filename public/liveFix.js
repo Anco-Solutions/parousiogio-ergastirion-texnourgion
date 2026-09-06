@@ -25,7 +25,7 @@
         .topbar:has(.aen-datetime) { padding-bottom: 40px !important; }
         .sidebar::before { flex-basis: 4px !important; }
         @media (max-width: 650px) {
-          /* Header has enough height for the logo to sit fully inside it. */
+          /* The header is deliberately taller so the two text rows have air. */
           .topbar:has(.aen-datetime) {
             min-height: 240px !important;
             height: 240px !important;
@@ -33,8 +33,7 @@
             box-sizing: border-box !important;
           }
 
-          /* The logo is an independent visual anchor: exactly centered
-             vertically in the whole header and larger than either text row. */
+          /* The brand occupies the full header height. */
           .brand-button {
             position: absolute !important;
             left: 14px !important;
@@ -52,25 +51,30 @@
             align-items: center !important;
           }
 
+          /* EXACT vertical centering: 92px logo inside a 240px header = 74px top. */
+          .brand-button .aen-logo-mark {
+            position: absolute !important;
+            left: 0 !important;
+            top: 74px !important;
+            bottom: auto !important;
+            transform: none !important;
+            width: 92px !important;
+            height: 92px !important;
+            min-width: 92px !important;
+            min-height: 92px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            z-index: 20 !important;
+          }
+
           .brand-button > span:last-child {
             position: relative !important;
             top: 18px !important;
             min-width: 0 !important;
           }
 
-          .aen-logo-mark {
-            position: absolute !important;
-            left: 0 !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            width: 92px !important;
-            height: 92px !important;
-            min-width: 92px !important;
-            min-height: 92px !important;
-            margin: 0 !important;
-          }
-
-          /* The date/time row stays above the title row. */
+          /* Date/time stays on the first row. */
           .aen-datetime {
             top: 28px !important;
             bottom: auto !important;
@@ -81,17 +85,12 @@
             padding-left: 0 !important;
             padding-right: 12px !important;
           }
-
-          /* About 1 mm of breathing room from the left screen edge. */
-          .sidebar > .nav-item:first-child {
-            margin-left: 4px !important;
-          }
+          .sidebar > .nav-item:first-child { margin-left: 4px !important; }
           .sidebar::before { flex-basis: 0 !important; width: 0 !important; }
         }
       `
       document.head.appendChild(style)
     } else {
-      /* Keep this override after React's dynamically injected CSS. */
       document.head.appendChild(style)
     }
   }

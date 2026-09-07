@@ -1,1 +1,1 @@
-Temporary trigger for the UI and semester fix workflow.
+2026-09-07 final stable header logo fix

@@ -1,8 +1,0 @@
-/* Final stable header logo: local PNG, no external fetch. */
-.topbar .brand-mark{
-  background-image:url('./aen-logo-128.png')!important;
-  background-position:center!important;
-  background-size:contain!important;
-  background-repeat:no-repeat!important;
-  background-color:#fff!important;
-}

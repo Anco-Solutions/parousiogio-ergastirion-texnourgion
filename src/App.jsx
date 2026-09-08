@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
 import TeacherArrivalView from './TeacherArrivalView'
 import AdminWorkshopsView from './AdminWorkshopsView'
+import StudentsView from './StudentsView'
 
 const DEFAULT_SEMESTER_CODE = 'ST'
 const ACADEMIC_PERIODS = [
@@ -25,45 +26,6 @@ const extraModules = [
   ['🏫', 'Ακαδημαϊκά', 'academic', 'academic'],
   ['🧾', 'Ιστορικό ενεργειών', 'audit_logs', 'audit'],
 ]
-
-function StudentsView() {
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
-
-  async function loadStudents() {
-    if (!supabase) return
-    setLoading(true)
-    setError('')
-    const { data, error: queryError } = await supabase.from('students').select('*').limit(100)
-    if (queryError) setError(queryError.message)
-    else setRows(data ?? [])
-    setLoading(false)
-  }
-
-  useEffect(() => { loadStudents() }, [])
-
-  const columns = useMemo(() => {
-    const keys = new Set()
-    rows.forEach((row) => Object.keys(row).forEach((key) => keys.add(key)))
-    return [...keys]
-  }, [rows])
-
-  const filteredRows = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    if (!term) return rows
-    return rows.filter((row) => Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(term)))
-  }, [rows, search])
-
-  if (!isSupabaseConfigured) return <div className="data-card"><h2>Σπουδαστές</h2><p>Το Supabase δεν έχει ρυθμιστεί στο περιβάλλον εκτέλεσης.</p></div>
-
-  return <section className="data-page">
-    <div className="page-title-row"><div><p className="kicker">Διαχείριση</p><h1>👥 Σπουδαστές</h1><p>Πραγματικά δεδομένα από τον πίνακα <strong>students</strong>.</p></div><span className="count-badge">{filteredRows.length} εγγραφές</span></div>
-    <div className="toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Αναζήτηση σε όλους τους σπουδαστές…" aria-label="Αναζήτηση σπουδαστών" /><button type="button" className="secondary-button" onClick={loadStudents}>↻ Ανανέωση</button></div>
-    <div className="data-card table-wrap">{loading ? <div className="loading">Φόρτωση σπουδαστών…</div> : error ? <div className="error-box">Αδυναμία φόρτωσης: {error}</div> : rows.length === 0 ? <div className="empty-state compact"><div className="empty-icon">👥</div><h2>Δεν υπάρχουν εγγραφές</h2><p>Ο πίνακας students είναι διαθέσιμος αλλά δεν περιέχει ακόμη σπουδαστές.</p></div> : <table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{filteredRows.map((row, index) => <tr key={row.id ?? index}>{columns.map((column) => <td key={column}>{String(row[column] ?? '—')}</td>)}</tr>)}</tbody></table>}</div>
-  </section>
-}
 
 function AuditView() {
   const [rows, setRows] = useState([])
@@ -191,6 +153,8 @@ function App() {
   const currentSemester = semesters.find((semester) => semester.code === selectedSemesterCode) || null
   const allModules = [...modules, ...extraModules]
   const activeModule = allModules.find(([, , , id]) => id === activeView)
+
+  if (!authChecked) return <div className="app-shell"><main style={{ padding: '2rem' }}><div className="loading">Έλεγχος σύνδεσης…</div></main></div>
 
   return <div className="app-shell">
     <header className="topbar">

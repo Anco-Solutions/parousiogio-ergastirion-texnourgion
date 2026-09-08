@@ -17,14 +17,11 @@ function fetchWithTimeout(input, init = {}) {
   return fetch(input, { ...init, signal: controller.signal }).finally(() => window.clearTimeout(timer))
 }
 
-const client = isSupabaseConfigured
+// Public/data client: never initializes persistent auth storage on startup.
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabasePublishableKey, {
-      global: {
-        fetch: fetchWithTimeout,
-      },
+      global: { fetch: fetchWithTimeout },
       auth: {
-        // Avoid Safari persistent-storage initialization during app startup.
-        // Admin authentication remains available for the current browser session.
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
@@ -33,4 +30,16 @@ const client = isSupabaseConfigured
     })
   : null
 
-export const supabase = client
+// Authentication client is intentionally separate from the public data client.
+// It is created only when the application actually needs administrator auth.
+export const authSupabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabasePublishableKey, {
+      global: { fetch: fetchWithTimeout },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        lock: async (_name, _acquireTimeout, fn) => await fn(),
+      },
+    })
+  : null

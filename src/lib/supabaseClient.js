@@ -23,20 +23,14 @@ const client = isSupabaseConfigured
         fetch: fetchWithTimeout,
       },
       auth: {
+        // Avoid Safari persistent-storage initialization during app startup.
+        // Admin authentication remains available for the current browser session.
+        persistSession: false,
+        autoRefreshToken: false,
         detectSessionInUrl: false,
         lock: async (_name, _acquireTimeout, fn) => await fn(),
       },
     })
   : null
-
-if (client) {
-  const originalGetSession = client.auth.getSession.bind(client.auth)
-  client.auth.getSession = async () => {
-    const timeout = new Promise((resolve) => {
-      window.setTimeout(() => resolve({ data: { session: null }, error: null }), 4000)
-    })
-    return Promise.race([originalGetSession(), timeout])
-  }
-}
 
 export const supabase = client

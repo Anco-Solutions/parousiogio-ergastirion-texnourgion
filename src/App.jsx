@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
+import { authSupabase, isSupabaseConfigured, supabase } from './lib/supabaseClient'
 import TeacherArrivalView from './TeacherArrivalView'
 import AdminWorkshopsView from './AdminWorkshopsView'
 import StudentsView from './StudentsView'
@@ -82,9 +82,14 @@ function LoginView({ onDone }) {
       setBusy(false)
       return
     }
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: 'ballas.aen@gmail.com', password })
+    if (!authSupabase) {
+      setError('Η υπηρεσία σύνδεσης δεν είναι διαθέσιμη.')
+      setBusy(false)
+      return
+    }
+    const { data, error: signInError } = await authSupabase.auth.signInWithPassword({ email: 'ballas.aen@gmail.com', password })
     if (signInError) setError(signInError.message)
-    else onDone()
+    else onDone(data.session)
     setBusy(false)
   }
 
@@ -101,31 +106,17 @@ function App() {
   const [selectedSemesterCode, setSelectedSemesterCode] = useState(() => typeof window === 'undefined' ? DEFAULT_SEMESTER_CODE : localStorage.getItem('parousiologio_current_semester') || DEFAULT_SEMESTER_CODE)
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [authChecked, setAuthChecked] = useState(false)
-
-  useEffect(() => {
-    if (!supabase) { setAuthChecked(true); return }
-    let mounted = true
-    supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setAuthChecked(true) } }).catch(() => { if (mounted) setAuthChecked(true) })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); setAuthChecked(true); if (!nextSession) { setIsAdmin(false); if (activeView === 'admin-workshops') setActiveView('dashboard') } })
-    return () => { mounted = false; listener.subscription.unsubscribe() }
-  }, [])
-
-  useEffect(() => {
-    async function checkRole() {
-      if (!supabase || !session?.user) { setIsAdmin(false); return }
-      const { data, error } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
-      setIsAdmin(!error && data?.role === 'admin')
-    }
-    checkRole()
-  }, [session])
 
   useEffect(() => {
     async function checkConnection() {
       if (!isSupabaseConfigured) { setStatus('Αναμονή ρυθμίσεων Supabase'); return }
-      const { count, error } = await supabase.from('students').select('*', { count: 'exact', head: true })
-      if (error) setStatus(`Σφάλμα σύνδεσης: ${error.message}`)
-      else { setStudentCount(count ?? 0); setStatus('Συνδεδεμένο με Supabase') }
+      try {
+        const { count, error } = await supabase.from('students').select('*', { count: 'exact', head: true })
+        if (error) setStatus(`Σφάλμα σύνδεσης: ${error.message}`)
+        else { setStudentCount(count ?? 0); setStatus('Συνδεδεμένο με Supabase') }
+      } catch (error) {
+        setStatus(`Σφάλμα σύνδεσης: ${error?.message || 'Αδυναμία επικοινωνίας'}`)
+      }
     }
     checkConnection()
   }, [])
@@ -133,13 +124,17 @@ function App() {
   useEffect(() => {
     async function loadSemesters() {
       if (!supabase) return
-      const { data, error } = await supabase.from('semesters').select('code,name')
-      if (error) { setSemesterError(error.message); return }
-      const available = data ?? []
-      setSemesters(available)
-      if (!available.some((semester) => semester.code === selectedSemesterCode)) {
-        const preferred = available.find((semester) => semester.code === DEFAULT_SEMESTER_CODE) || available[0]
-        if (preferred) setSelectedSemesterCode(preferred.code)
+      try {
+        const { data, error } = await supabase.from('semesters').select('code,name')
+        if (error) { setSemesterError(error.message); return }
+        const available = data ?? []
+        setSemesters(available)
+        if (!available.some((semester) => semester.code === selectedSemesterCode)) {
+          const preferred = available.find((semester) => semester.code === DEFAULT_SEMESTER_CODE) || available[0]
+          if (preferred) setSelectedSemesterCode(preferred.code)
+        }
+      } catch (error) {
+        setSemesterError(error?.message || 'Αδυναμία φόρτωσης εξαμήνων')
       }
     }
     loadSemesters()
@@ -147,8 +142,35 @@ function App() {
 
   function handleAcademicPeriodChange(event) { const period = event.target.value; setAcademicPeriod(period); localStorage.setItem('parousiologio_academic_period', period) }
   function handleSemesterChange(event) { const code = event.target.value; setSelectedSemesterCode(code); localStorage.setItem('parousiologio_current_semester', code) }
-  function openAdmin() { setActiveView(isAdmin ? 'admin-workshops' : 'admin-login') }
-  async function signOut() { await supabase?.auth.signOut(); setActiveView('dashboard') }
+
+  async function openAdmin() {
+    if (!authSupabase) { setActiveView('admin-login'); return }
+    try {
+      const { data } = await authSupabase.auth.getSession()
+      const nextSession = data?.session ?? null
+      setSession(nextSession)
+      if (!nextSession?.user) { setIsAdmin(false); setActiveView('admin-login'); return }
+      const { data: profile, error } = await supabase.from('profiles').select('role').eq('id', nextSession.user.id).maybeSingle()
+      const admin = !error && profile?.role === 'admin'
+      setIsAdmin(admin)
+      setActiveView(admin ? 'admin-workshops' : 'admin-login')
+    } catch {
+      setSession(null)
+      setIsAdmin(false)
+      setActiveView('admin-login')
+    }
+  }
+
+  async function handleLoginDone(nextSession) {
+    setSession(nextSession ?? null)
+    if (!nextSession?.user) { setIsAdmin(false); setActiveView('admin-login'); return }
+    const { data: profile, error } = await supabase.from('profiles').select('role').eq('id', nextSession.user.id).maybeSingle()
+    const admin = !error && profile?.role === 'admin'
+    setIsAdmin(admin)
+    setActiveView(admin ? 'admin-workshops' : 'dashboard')
+  }
+
+  async function signOut() { await authSupabase?.auth.signOut(); setSession(null); setIsAdmin(false); setActiveView('dashboard') }
 
   const currentSemester = semesters.find((semester) => semester.code === selectedSemesterCode) || null
   const allModules = [...modules, ...extraModules]
@@ -175,7 +197,7 @@ function App() {
           <section className="hero"><div><p className="kicker">Κεντρικός πίνακας</p><h1>Παρουσιολόγιο Εργαστηρίων Τεχνολογιών</h1><p className="hero-copy">Κεντρικό περιβάλλον για σπουδαστές, ομάδες, μαθήματα, καθηγητές, πρόγραμμα και καταγραφή παρουσιών.</p></div><div className="semester-card"><span>Ακαδημαϊκή περίοδος</span><select className="semester-select" value={academicPeriod} onChange={handleAcademicPeriodChange} aria-label="Επιλογή ακαδημαϊκής περιόδου">{ACADEMIC_PERIODS.map((period) => <option key={period.code} value={period.code}>{period.name}</option>)}</select><span style={{ marginTop: '0.65rem' }}>Εξάμηνο</span>{semesters.length > 0 ? <select className="semester-select" value={selectedSemesterCode} onChange={handleSemesterChange} aria-label="Επιλογή τρέχοντος εξαμήνου">{semesters.map((semester) => <option key={semester.code} value={semester.code}>{semester.name}</option>)}</select> : <strong>{semesterError ? 'Σφάλμα φόρτωσης' : 'Φόρτωση…'}</strong>}<small>{currentSemester ? `Κωδικός: ${currentSemester.code}` : semesterError || 'Ανάκτηση από τον πίνακα semesters'}</small></div></section>
           <section className="stats"><div className="stat-card"><span>Σπουδαστές</span><strong>{studentCount === null ? '—' : studentCount}</strong></div><div className="stat-card"><span>Παρουσίες</span><strong>—</strong></div><div className="stat-card"><span>Σημερινά εργαστήρια</span><strong>—</strong></div></section>
           <section><div className="section-heading"><p className="kicker">Γρήγορη πρόσβαση</p><h2>Ενότητες εφαρμογής</h2></div><div className="module-grid">{modules.map(([icon, title, table, id]) => <button className="module-card" key={id} onClick={() => setActiveView(id)} type="button"><span className="module-icon">{icon}</span><span><strong>{title}</strong><small>{table}</small></span><span className="arrow">→</span></button>)}</div></section>
-        </> : activeView === 'students' ? <StudentsView /> : activeView === 'audit' ? <AuditView /> : activeView === 'teacher-arrival' ? <TeacherArrivalView /> : activeView === 'admin-login' ? <LoginView onDone={() => setActiveView('admin-workshops')} /> : activeView === 'admin-workshops' ? (isAdmin ? <AdminWorkshopsView /> : <LoginView onDone={() => setActiveView('admin-workshops')} />) : <section className="module-page"><p className="kicker">Ενότητα εφαρμογής</p><div className="page-title-row"><div><h1>{activeModule?.[0]} {activeModule?.[1]}</h1><p>Η ενότητα θα συνδεθεί με τα πραγματικά δεδομένα του Supabase.</p></div><span className="table-badge">public.{activeModule?.[2]}</span></div><div className="empty-state"><div className="empty-icon">{activeModule?.[0]}</div><h2>Έτοιμη για υλοποίηση</h2><p>Το κέλυφος λειτουργεί. Επόμενο βήμα: η πραγματική λειτουργία της συγκεκριμένης ενότητας.</p></div></section>}
+        </> : activeView === 'students' ? <StudentsView /> : activeView === 'audit' ? <AuditView /> : activeView === 'teacher-arrival' ? <TeacherArrivalView /> : activeView === 'admin-login' ? <LoginView onDone={handleLoginDone} /> : activeView === 'admin-workshops' ? (isAdmin ? <AdminWorkshopsView /> : <LoginView onDone={handleLoginDone} />) : <section className="module-page"><p className="kicker">Ενότητα εφαρμογής</p><div className="page-title-row"><div><h1>{activeModule?.[0]} {activeModule?.[1]}</h1><p>Η ενότητα θα συνδεθεί με τα πραγματικά δεδομένα του Supabase.</p></div><span className="table-badge">public.{activeModule?.[2]}</span></div><div className="empty-state"><div className="empty-icon">{activeModule?.[0]}</div><h2>Έτοιμη για υλοποίηση</h2><p>Το κέλυφος λειτουργεί. Επόμενο βήμα: η πραγματική λειτουργία της συγκεκριμένης ενότητας.</p></div></section>}
       </main>
     </div>
     {!isSupabaseConfigured && <aside className="notice"><strong>Το Supabase δεν έχει ρυθμιστεί στο περιβάλλον εκτέλεσης.</strong><p>Τα κλειδιά δίνονται ως environment variables στο deployment.</p></aside>}

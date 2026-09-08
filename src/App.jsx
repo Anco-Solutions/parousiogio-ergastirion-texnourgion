@@ -154,8 +154,6 @@ function App() {
   const allModules = [...modules, ...extraModules]
   const activeModule = allModules.find(([, , , id]) => id === activeView)
 
-  if (!authChecked) return <div className="app-shell"><main style={{ padding: '2rem' }}><div className="loading">Έλεγχος σύνδεσης…</div></main></div>
-
   return <div className="app-shell">
     <header className="topbar">
       <button className="brand-button" type="button" onClick={() => setActiveView('dashboard')}><span className="brand-mark">A</span><span><span className="eyebrow">AEN • ΕΡΓΑΣΤΗΡΙΑ ΤΕΧΝΟΛΟΓΙΩΝ</span><strong>Παρουσιολόγιο</strong></span></button>

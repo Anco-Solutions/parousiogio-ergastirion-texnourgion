@@ -29,15 +29,45 @@ function rowsFromWords(words) {
   return rows.sort((a, b) => a.cy - b.cy).map((row) => ({ cy: row.cy, text: row.words.sort((a, b) => a.x - b.x).map((word) => word.text).join(' ') }))
 }
 
+function detectVerticalSplit(bitmap) {
+  const probe = document.createElement('canvas')
+  probe.width = Math.min(700, bitmap.width)
+  probe.height = Math.min(1400, bitmap.height)
+  const ctx = probe.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(bitmap, 0, 0, probe.width, probe.height)
+  const data = ctx.getImageData(0, 0, probe.width, probe.height).data
+  const scores = new Array(probe.width).fill(0)
+  for (let x = 0; x < probe.width; x += 1) {
+    let dark = 0
+    for (let y = 0; y < probe.height; y += 2) {
+      const i = (y * probe.width + x) * 4
+      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      if (lum < 125) dark += 1
+    }
+    scores[x] = dark
+  }
+  let bestX = Math.round(probe.width * 0.18)
+  let bestScore = -1
+  const minX = Math.round(probe.width * 0.08)
+  const maxX = Math.round(probe.width * 0.45)
+  for (let x = minX; x <= maxX; x += 1) {
+    const score = (scores[x - 1] || 0) + scores[x] + (scores[x + 1] || 0)
+    if (score > bestScore) { bestScore = score; bestX = x }
+  }
+  return Math.round((bestX / probe.width) * bitmap.width)
+}
+
 export async function parseOcrColumns(file, worker) {
   const bitmap = await createImageBitmap(file)
   try {
     const width = bitmap.width
     const height = bitmap.height
-    const split = Math.round(width * 0.30)
+    const detectedSplit = detectVerticalSplit(bitmap)
+    const split = Math.max(Math.round(width * 0.12), Math.min(Math.round(width * 0.32), detectedSplit))
+
     const makeColumn = async (fromX, toX) => {
       const sourceWidth = Math.max(1, toX - fromX)
-      const scale = Math.min(2.5, 2200 / sourceWidth)
+      const scale = Math.min(3.5, 2600 / sourceWidth)
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, Math.round(sourceWidth * scale))
       canvas.height = Math.max(1, Math.round(height * scale))
@@ -48,17 +78,20 @@ export async function parseOcrColumns(file, worker) {
       const d = image.data
       for (let i = 0; i < d.length; i += 4) {
         const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114
-        const v = Math.max(0, Math.min(255, ((y - 128) * 1.7) + 128))
+        const v = Math.max(0, Math.min(255, ((y - 128) * 1.9) + 128))
         d[i] = v; d[i + 1] = v; d[i + 2] = v
       }
       ctx.putImageData(image, 0, 0)
-      return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('OCR column image failed')), 'image/jpeg', 0.96))
+      return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('OCR column image failed')), 'image/jpeg', 0.97))
     }
 
-    const numberResult = await worker.recognize(await makeColumn(0, split), { tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
-    const nameResult = await worker.recognize(await makeColumn(split, width), { tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
+    const leftEdge = Math.max(0, split - Math.round(width * 0.008))
+    const rightEdge = Math.min(width, split + Math.round(width * 0.008))
+    const numberResult = await worker.recognize(await makeColumn(0, leftEdge), { tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
+    const nameResult = await worker.recognize(await makeColumn(rightEdge, width), { tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
     const numberRows = rowsFromWords(numberResult.data.words || [])
     const nameRows = rowsFromWords(nameResult.data.words || [])
+
     const numbers = []
     for (const row of numberRows) {
       const matches = row.text.match(/[0-9ΟOIΙΖZΕEAΑSΣGΓΤTΒBqQ]{3,8}/g) || []
@@ -67,7 +100,11 @@ export async function parseOcrColumns(file, worker) {
         if (n.length >= 4 && n.length <= 6) { numbers.push({ cy: row.cy, registryNumber: n }); break }
       }
     }
-    const names = nameRows.map((row) => ({ cy: row.cy, fullName: normalize(row.text) })).filter((row) => /[A-ZΑ-ΩΆΈΉΊΌΎΏα-ωάέήίόύώ]{2,}/u.test(row.fullName))
+
+    const names = nameRows
+      .map((row) => ({ cy: row.cy, fullName: normalize(row.text) }))
+      .filter((row) => /[A-ZΑ-ΩΆΈΉΊΌΎΏα-ωάέήίόύώ]{2,}/u.test(row.fullName))
+
     const results = []
     const used = new Set()
     for (const number of numbers) {
@@ -75,7 +112,7 @@ export async function parseOcrColumns(file, worker) {
       let distanceBest = Infinity
       for (const row of names) {
         const distance = Math.abs(row.cy - number.cy)
-        if (distance < distanceBest && distance <= 90 && !used.has(row)) { best = row; distanceBest = distance }
+        if (distance < distanceBest && distance <= 120 && !used.has(row)) { best = row; distanceBest = distance }
       }
       if (!best || results.some((item) => item.registryNumber === number.registryNumber)) continue
       const parts = best.fullName.split(/\s+/).filter(Boolean)

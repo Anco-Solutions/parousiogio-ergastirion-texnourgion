@@ -1,4 +1,12 @@
-import { PaddleOCR } from '@paddleocr/paddleocr-js'
+import { PaddleOcrService } from 'paddleocr'
+import * as ort from 'onnxruntime-web'
+
+const DET_URL = 'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx'
+const REC_URL = 'https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx'
+const DICT_URL = 'https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/el/v5/ppocrv5_el_dict.txt'
+
+let paddlePromise = null
+let modelPromise = null
 
 function normalize(value) {
   return String(value || '').replace(/[|¦]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -12,22 +20,50 @@ function registryToken(token) {
     .replace(/[qQ]/g, '9').replace(/\D/g, '')
 }
 
-let paddlePromise = null
+function extractNumber(text) {
+  const tokens = String(text || '').match(/[0-9ΟOΙIΖZΕEΑASΣGΓΤTΒBqQ]{3,8}/g) || []
+  for (const token of tokens) {
+    const n = registryToken(token)
+    if (n.length >= 4 && n.length <= 6) return n
+  }
+  return null
+}
+
+async function fetchBuffer(url) {
+  const response = await fetch(url, { mode: 'cors', cache: 'force-cache' })
+  if (!response.ok) throw new Error(`OCR model download failed (${response.status})`)
+  return response.arrayBuffer()
+}
+
+async function fetchText(url) {
+  const response = await fetch(url, { mode: 'cors', cache: 'force-cache' })
+  if (!response.ok) throw new Error(`OCR dictionary download failed (${response.status})`)
+  return response.text()
+}
+
+async function getModels() {
+  if (!modelPromise) {
+    modelPromise = Promise.all([fetchBuffer(DET_URL), fetchBuffer(REC_URL), fetchText(DICT_URL)])
+      .catch((error) => {
+        modelPromise = null
+        throw error
+      })
+  }
+  return modelPromise
+}
 
 async function getPaddleOcr() {
   if (!paddlePromise) {
-    paddlePromise = PaddleOCR.create({
-      textDetectionModelName: 'PP-OCRv5_mobile_det',
-      textRecognitionModelName: 'el_PP-OCRv5_mobile_rec',
-      worker: true,
-      textDetectionBatchSize: 2,
-      textRecognitionBatchSize: 4,
-      ortOptions: {
-        backend: 'wasm',
-        wasmPaths: 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/',
-        numThreads: 2,
-        simd: true
-      }
+    paddlePromise = getModels().then(async ([detModel, recModel, dictText]) => {
+      return PaddleOcrService.createInstance({
+        ort,
+        modelPreset: 'PP-OCRv5_mobile',
+        detection: { modelBuffer: detModel },
+        recognition: {
+          modelBuffer: recModel,
+          charactersDictionary: dictText.trim().split(/\r?\n/).filter(Boolean)
+        }
+      })
     }).catch((error) => {
       paddlePromise = null
       throw error
@@ -87,8 +123,9 @@ function cleanTableStrip(canvas) {
   return canvas
 }
 
-async function canvasBlob(canvas) {
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('OCR image failed')), 'image/jpeg', 0.98))
+function canvasPixels(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  return { width: canvas.width, height: canvas.height, data: new Uint8Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data) }
 }
 
 function horizontalProjection(bitmap) {
@@ -151,36 +188,23 @@ function findLikelySplit(bitmap) {
   return best / canvas.width
 }
 
-function extractNumber(text) {
-  const tokens = String(text || '').match(/[0-9ΟOΙIΖZΕEΑASΣGΓΤTΒBqQ]{3,8}/g) || []
-  for (const token of tokens) {
-    const n = registryToken(token)
-    if (n.length >= 4 && n.length <= 6) return n
-  }
-  return null
+function resultText(ocr, results) {
+  const processed = ocr.processRecognition(results)
+  return normalize(processed?.text || '')
 }
 
-function extractPaddleText(result) {
-  return (result?.items || [])
-    .slice()
-    .sort((a, b) => {
-      const ay = Math.min(...(a.poly || []).map((p) => p[1] ?? 0))
-      const by = Math.min(...(b.poly || []).map((p) => p[1] ?? 0))
-      return ay - by
-    })
-    .map((item) => normalize(item.text))
-    .filter(Boolean)
-}
-
-async function recognizePaddle(ocr, blob, threshold = 0.30) {
-  const [result] = await ocr.predict(blob, {
-    textDetBoxThresh: 0.20,
-    textDetThresh: 0.20,
-    textRecScoreThresh: threshold,
-    textDetLimitSideLen: 1800,
-    textDetLimitType: 'max'
+async function recognizeCanvas(ocr, canvas, options = {}) {
+  return ocr.recognize(canvasPixels(canvas), {
+    detection: {
+      textPixelThreshold: 0.20,
+      boxScoreThreshold: 0.20,
+      unclipRatio: 1.5,
+      limitType: 'max',
+      maxSideLimit: 2400,
+      ...(options.detection || {})
+    },
+    ordering: { sortByReadingOrder: true }
   })
-  return result
 }
 
 export async function parseOcrColumns(file) {
@@ -203,13 +227,12 @@ export async function parseOcrColumns(file) {
         const nameScale = Math.min(3.5, 3000 / Math.max(1, bitmap.width - splitX))
         const numberCanvas = cleanTableStrip(imageFromBitmap(bitmap, 0, top, splitX, bottom - top, numberScale))
         const nameCanvas = cleanTableStrip(imageFromBitmap(bitmap, splitX + Math.round(bitmap.width * 0.008), top, bitmap.width - splitX, bottom - top, nameScale))
-        const numberResult = await recognizePaddle(ocr, await canvasBlob(numberCanvas), 0.20)
-        const number = extractNumber(extractPaddleText(numberResult).join(' '))
+
+        const numberText = resultText(ocr, await recognizeCanvas(ocr, numberCanvas, { detection: { boxScoreThreshold: 0.15 } }))
+        const number = extractNumber(numberText)
         if (!number) continue
 
-        const nameResult = await recognizePaddle(ocr, await canvasBlob(nameCanvas), 0.35)
-        const fullName = extractPaddleText(nameResult)
-          .join(' ')
+        const fullName = resultText(ocr, await recognizeCanvas(ocr, nameCanvas, { detection: { boxScoreThreshold: 0.18 } }))
           .replace(/[^A-Za-zΑ-ΩΆΈΉΊΌΎΏα-ωάέήίόύώ\-\s]/gu, ' ')
           .replace(/\s+/g, ' ')
           .trim()
@@ -227,13 +250,12 @@ export async function parseOcrColumns(file) {
       if (unique.length) return unique
     }
 
-    // Fallback: run PaddleOCR on the two complete columns when row rules are not detectable.
     const numberCanvas = cleanTableStrip(imageFromBitmap(bitmap, 0, 0, splitX, bitmap.height, Math.min(3.5, 2600 / Math.max(1, splitX))))
     const nameCanvas = cleanTableStrip(imageFromBitmap(bitmap, splitX + Math.round(bitmap.width * 0.008), 0, bitmap.width - splitX, bitmap.height, Math.min(3, 3000 / Math.max(1, bitmap.width - splitX))))
-    const numberResult = await recognizePaddle(ocr, await canvasBlob(numberCanvas), 0.20)
-    const nameResult = await recognizePaddle(ocr, await canvasBlob(nameCanvas), 0.35)
-    const numbers = extractPaddleText(numberResult).map(extractNumber).filter(Boolean)
-    const names = extractPaddleText(nameResult)
+    const numberText = resultText(ocr, await recognizeCanvas(ocr, numberCanvas))
+    const nameText = resultText(ocr, await recognizeCanvas(ocr, nameCanvas))
+    const numbers = numberText.split(/\s+/).map(extractNumber).filter(Boolean)
+    const names = nameText.split(/\n+/).map(normalize).filter(Boolean)
     const fallback = []
     const count = Math.min(numbers.length, names.length)
     for (let i = 0; i < count; i += 1) {

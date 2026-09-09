@@ -25,12 +25,13 @@ async function prepareImage(file) { const bitmap = await createImageBitmap(file)
 
 function CropEditor({ file, onApply, onSkip, onBack }) {
   const [imageUrl, setImageUrl] = useState('')
+  const [imageSize, setImageSize] = useState({ width: 1, height: 1 })
   const [corners, setCorners] = useState({ nw: { x: 6, y: 5 }, ne: { x: 94, y: 5 }, se: { x: 94, y: 93 }, sw: { x: 6, y: 93 } })
   const [activeCorner, setActiveCorner] = useState(null)
   const [applying, setApplying] = useState(false)
   const areaRef = useRef(null)
   const dragRef = useRef(null)
-  useEffect(() => { const url = URL.createObjectURL(file); setImageUrl(url); return () => URL.revokeObjectURL(url) }, [file])
+  useEffect(() => { const url = URL.createObjectURL(file); setImageUrl(url); const probe = new Image(); probe.onload = () => setImageSize({ width: probe.naturalWidth || 1, height: probe.naturalHeight || 1 }); probe.src = url; return () => URL.revokeObjectURL(url) }, [file])
   function startDrag(event, corner) { event.preventDefault(); event.stopPropagation(); setActiveCorner(corner); event.currentTarget.setPointerCapture?.(event.pointerId); const rect = areaRef.current?.getBoundingClientRect(); if (!rect) return; dragRef.current = { corner, x: event.clientX, y: event.clientY, corners: JSON.parse(JSON.stringify(corners)), rect } }
   function moveCorner(event) { const drag = dragRef.current; if (!drag?.rect) return; const dx = ((event.clientX - drag.x) / drag.rect.width) * 100; const dy = ((event.clientY - drag.y) / drag.rect.height) * 100; const next = JSON.parse(JSON.stringify(drag.corners)); next[drag.corner].x = Math.max(0, Math.min(100, drag.corners[drag.corner].x + dx)); next[drag.corner].y = Math.max(0, Math.min(100, drag.corners[drag.corner].y + dy)); setCorners(next) }
   function stopDrag() { dragRef.current = null }
@@ -44,9 +45,9 @@ function CropEditor({ file, onApply, onSkip, onBack }) {
       const source = sourceContext.getImageData(0, 0, bitmap.width, bitmap.height)
       const src = [corners.nw, corners.ne, corners.se, corners.sw].map((p) => ({ x: p.x * bitmap.width / 100, y: p.y * bitmap.height / 100 }))
       const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
-      let outWidth = Math.max(1, Math.round(Math.max(distance(src[0], src[1]), distance(src[3], src[2]))))
-      let outHeight = Math.max(1, Math.round(Math.max(distance(src[0], src[3]), distance(src[1], src[2]))))
-      const maxPixels = 3000000; const scale = Math.min(1, Math.sqrt(maxPixels / (outWidth * outHeight))); outWidth = Math.max(1, Math.round(outWidth * scale)); outHeight = Math.max(1, Math.round(outHeight * scale))
+      const topWidth = distance(src[0], src[1]); const bottomWidth = distance(src[3], src[2]); const leftHeight = distance(src[0], src[3]); const rightHeight = distance(src[1], src[2])
+      let outWidth = Math.max(1, Math.round((topWidth + bottomWidth) / 2)); let outHeight = Math.max(1, Math.round((leftHeight + rightHeight) / 2))
+      const maxPixels = 6000000; const scale = Math.min(1, Math.sqrt(maxPixels / (outWidth * outHeight))); outWidth = Math.max(1, Math.round(outWidth * scale)); outHeight = Math.max(1, Math.round(outHeight * scale))
       const a = Array.from({ length: 8 }, () => Array(9).fill(0)); const dst = [{ x: 0, y: 0 }, { x: outWidth - 1, y: 0 }, { x: outWidth - 1, y: outHeight - 1 }, { x: 0, y: outHeight - 1 }]
       for (let i = 0; i < 4; i += 1) { const x = dst[i].x; const y = dst[i].y; const u = src[i].x; const v = src[i].y; a[i * 2] = [x, y, 1, 0, 0, 0, -x * u, -y * u, u]; a[i * 2 + 1] = [0, 0, 0, x, y, 1, -x * v, -y * v, v] }
       for (let col = 0; col < 8; col += 1) { let pivot = col; for (let row = col + 1; row < 8; row += 1) if (Math.abs(a[row][col]) > Math.abs(a[pivot][col])) pivot = row; if (Math.abs(a[pivot][col]) < 1e-10) throw new Error('Μη έγκυρη περιοχή crop.'); [a[col], a[pivot]] = [a[pivot], a[col]]; const div = a[col][col]; for (let j = col; j < 9; j += 1) a[col][j] /= div; for (let row = 0; row < 8; row += 1) { if (row === col) continue; const factor = a[row][col]; if (!factor) continue; for (let j = col; j < 9; j += 1) a[row][j] -= factor * a[col][j] } }
@@ -60,15 +61,16 @@ function CropEditor({ file, onApply, onSkip, onBack }) {
   }
   const handleStyle = (corner) => ({ position: 'absolute', left: `${corners[corner].x}%`, top: `${corners[corner].y}%`, width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: '50%', background: '#fff', border: '3px solid #17233b', boxSizing: 'border-box', touchAction: 'none', zIndex: 5, cursor: 'crosshair', boxShadow: '0 1px 6px rgba(0,0,0,0.5)' })
   const activePoint = activeCorner ? corners[activeCorner] : null
+  const zoomSize = 190; const zoomFactor = 5; const zoomImageWidth = zoomSize * zoomFactor * (imageSize.width / imageSize.height); const zoomImageHeight = zoomSize * zoomFactor; const zoomImageLeft = (zoomSize / 2) - (activePoint ? (activePoint.x / 100) * zoomImageWidth : 0); const zoomImageTop = (zoomSize / 2) - (activePoint ? (activePoint.y / 100) * zoomImageHeight : 0)
   return (
     <div style={{ marginTop: '0.8rem' }}>
-      <div className="audit-note">✂️ <strong>1. Επιλογή 4 γωνιών</strong> — μετακίνησε κάθε λευκή γωνία ανεξάρτητα πάνω στη γωνία του χαρτιού. Το μικρό παράθυρο zoom δείχνει μεγεθυμένο το σημείο που χειρίζεσαι.</div>
+      <div className="audit-note">✂️ <strong>1. Επιλογή 4 γωνιών</strong> — μετακίνησε κάθε λευκή γωνία ανεξάρτητα πάνω στη γωνία του χαρτιού. Το μεγάλο zoom είναι δεμένο ακριβώς με τη γωνία που σύρεις.</div>
       <div ref={areaRef} style={{ position: 'relative', marginTop: '0.7rem', width: '100%', overflow: 'hidden', borderRadius: 14, background: '#111', lineHeight: 0, touchAction: 'none' }}>
         <img src={imageUrl} alt="Προεπισκόπηση για crop" style={{ display: 'block', width: '100%', height: 'auto', userSelect: 'none', pointerEvents: 'none' }} />
         {imageUrl && <>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%)`, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', pointerEvents: 'none' }} />
           <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points={`${corners.nw.x},${corners.nw.y} ${corners.ne.x},${corners.ne.y} ${corners.se.x},${corners.se.y} ${corners.sw.x},${corners.sw.y}`} fill="rgba(255,255,255,0.04)" stroke="white" strokeWidth="0.9" vectorEffect="non-scaling-stroke" /></svg>
-          {activePoint && <div style={{ position: 'absolute', right: 10, top: 10, width: 104, height: 104, borderRadius: 12, border: '3px solid #fff', backgroundImage: `url(${imageUrl})`, backgroundRepeat: 'no-repeat', backgroundSize: '300% 300%', backgroundPosition: `${activePoint.x}% ${activePoint.y}%`, boxShadow: '0 3px 12px rgba(0,0,0,0.55)', zIndex: 6, overflow: 'hidden', pointerEvents: 'none' }}><div style={{ position: 'absolute', left: '50%', top: '50%', width: 18, height: 18, marginLeft: -9, marginTop: -9, border: '2px solid #fff', borderRadius: '50%', boxShadow: '0 0 0 1px #17233b' }} /><div style={{ position: 'absolute', left: 5, right: 5, bottom: 4, textAlign: 'center', color: '#fff', fontSize: 10, fontWeight: 700, textShadow: '0 1px 3px #000' }}>ZOOM</div></div>}
+          {activePoint && <div style={{ position: 'absolute', right: 10, top: 10, width: zoomSize, height: zoomSize, borderRadius: 14, border: '3px solid #fff', background: '#111', boxShadow: '0 3px 14px rgba(0,0,0,0.6)', zIndex: 6, overflow: 'hidden', pointerEvents: 'none' }}><img src={imageUrl} alt="" style={{ position: 'absolute', width: zoomImageWidth, height: zoomImageHeight, maxWidth: 'none', maxHeight: 'none', left: zoomImageLeft, top: zoomImageTop, display: 'block' }} /><div style={{ position: 'absolute', left: '50%', top: '50%', width: 28, height: 28, marginLeft: -14, marginTop: -14, border: '2px solid #fff', borderRadius: '50%', boxShadow: '0 0 0 1px #17233b' }} /><div style={{ position: 'absolute', left: 7, right: 7, bottom: 5, textAlign: 'center', color: '#fff', fontSize: 11, fontWeight: 800, textShadow: '0 1px 3px #000' }}>ZOOM ×5</div></div>}
           {Object.keys(corners).map((corner) => <span key={corner} aria-label={`Γωνία ${corner}`} onPointerDown={(event) => startDrag(event, corner)} onPointerMove={moveCorner} onPointerUp={() => { stopDrag(); setActiveCorner(null) }} onPointerCancel={() => { stopDrag(); setActiveCorner(null) }} style={handleStyle(corner)} />)}
         </>}
       </div>

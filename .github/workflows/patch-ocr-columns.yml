@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/patch-ocr-columns.yml'
+      - 'src/StudentsView.jsx'
 permissions:
   contents: write
 jobs:
@@ -17,7 +18,6 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
           path = Path('src/StudentsView.jsx')
           s = path.read_text(encoding='utf-8')
           marker = '\nasync function prepareImage(file) {'

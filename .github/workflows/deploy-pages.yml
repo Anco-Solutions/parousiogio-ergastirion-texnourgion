@@ -27,15 +27,11 @@ jobs:
           from pathlib import Path
           path = Path('src/StudentsView.jsx')
           s = path.read_text(encoding='utf-8')
-          if "./ocrColumns" not in s:
-              s = "import { parseOcrColumns } from './ocrColumns'\n" + s
-          s = s.replace('const parsedByColumns = parseOcrWords(result.data.words || [])', 'const parsedByColumns = await parseOcrColumns(file, worker)')
+          if "./ocrColumnsV2" not in s:
+              s = "import { parseOcrColumnsV2 } from './ocrColumnsV2'\n" + s
+          s = s.replace('const parsedByColumns = parseOcrWords(result.data.words || [])', 'const parsedByColumns = await parseOcrColumnsV2(file)')
+          s = s.replace('const parsedByColumns = await parseOcrColumns(file, worker)', 'const parsedByColumns = await parseOcrColumnsV2(file)')
           path.write_text(s, encoding='utf-8')
-
-          ocr_path = Path('src/ocrColumns.js')
-          ocr = ocr_path.read_text(encoding='utf-8')
-          ocr = ocr.replace("textDetectionModelName: 'PP-OCRv5_mobile_det',\n      textRecognitionModelName: 'el_PP-OCRv5_mobile_rec',", "lang: 'el',\n      ocrVersion: 'PP-OCRv5',")
-          ocr_path.write_text(ocr, encoding='utf-8')
           PY
 
       - name: Setup Node

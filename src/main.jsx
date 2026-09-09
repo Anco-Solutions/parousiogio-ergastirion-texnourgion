@@ -9,27 +9,24 @@ import './siteHeader.css'
 
 function HeaderFixes() {
   useEffect(() => {
-    const apply = () => {
-      const logoBox = document.querySelector('.topbar .brand-mark')
-      if (logoBox && !logoBox.querySelector('img')) {
-        const logo = document.createElement('img')
-        logo.src = `${import.meta.env.BASE_URL}aem-logo.svg?v=20260906-1`
-        logo.alt = 'Σχολή Μηχανικών ΑΕΝ Ασπροπύργου'
-        logo.className = 'aen-logo-image'
-        logoBox.replaceChildren(logo)
-      }
-
-      const eyebrow = document.querySelector('.topbar .eyebrow')
-      if (eyebrow) eyebrow.textContent = 'AEN • ΕΡΓΑΣΤΗΡΙΑ ΤΕΧΝΟΥΡΓΕΙΩΝ'
-
-      const dashboardTitle = document.querySelector('.hero h1')
-      if (dashboardTitle) dashboardTitle.textContent = 'Παρουσιολόγιο Εργαστηρίων Τεχνουργείων'
+    const logoBox = document.querySelector('.topbar .brand-mark')
+    if (logoBox && !logoBox.querySelector('img')) {
+      const logo = document.createElement('img')
+      logo.src = `${import.meta.env.BASE_URL}aem-logo.svg?v=20260906-1`
+      logo.alt = 'Σχολή Μηχανικών ΑΕΝ Ασπροπύργου'
+      logo.className = 'aen-logo-image'
+      logoBox.replaceChildren(logo)
     }
 
-    apply()
-    const observer = new MutationObserver(apply)
-    observer.observe(document.getElementById('root'), { childList: true, subtree: true })
-    return () => observer.disconnect()
+    const eyebrow = document.querySelector('.topbar .eyebrow')
+    if (eyebrow && eyebrow.textContent !== 'AEN • ΕΡΓΑΣΤΗΡΙΑ ΤΕΧΝΟΥΡΓΕΙΩΝ') {
+      eyebrow.textContent = 'AEN • ΕΡΓΑΣΤΗΡΙΑ ΤΕΧΝΟΥΡΓΕΙΩΝ'
+    }
+
+    const dashboardTitle = document.querySelector('.hero h1')
+    if (dashboardTitle && dashboardTitle.textContent !== 'Παρουσιολόγιο Εργαστηρίων Τεχνουργείων') {
+      dashboardTitle.textContent = 'Παρουσιολόγιο Εργαστηρίων Τεχνουργείων'
+    }
   }, [])
 
   return null

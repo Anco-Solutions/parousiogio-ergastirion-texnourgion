@@ -139,8 +139,12 @@ export async function parseOcrColumns(file, worker) {
       }
     }
 
+    // Explicitly clear the digit whitelist before OCRing names. Tesseract workers
+    // keep parameters between recognize() calls, so leaving the whitelist active
+    // would make the second pass look for digits instead of Greek/Latin letters.
     const nameResult = await recognizeWithParameters(worker, nameBlob, {
       tessedit_pageseg_mode: '6',
+      tessedit_char_whitelist: '',
       preserve_interword_spaces: '1'
     })
     const names = rowsFromWords(nameResult.data.words || [])

@@ -1,3 +1,5 @@
+import { PaddleOCR } from '@paddleocr/paddleocr-js'
+
 function normalize(value) {
   return String(value || '').replace(/[|¦]/g, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -8,6 +10,30 @@ function registryToken(token) {
     .replace(/[ΕE]/g, '3').replace(/[ΑA]/g, '4').replace(/[SΣ]/g, '5')
     .replace(/[GΓ]/g, '6').replace(/[ΤT]/g, '7').replace(/[ΒB]/g, '8')
     .replace(/[qQ]/g, '9').replace(/\D/g, '')
+}
+
+let paddlePromise = null
+
+async function getPaddleOcr() {
+  if (!paddlePromise) {
+    paddlePromise = PaddleOCR.create({
+      textDetectionModelName: 'PP-OCRv5_mobile_det',
+      textRecognitionModelName: 'el_PP-OCRv5_mobile_rec',
+      worker: true,
+      textDetectionBatchSize: 2,
+      textRecognitionBatchSize: 4,
+      ortOptions: {
+        backend: 'wasm',
+        wasmPaths: 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/',
+        numThreads: 2,
+        simd: true
+      }
+    }).catch((error) => {
+      paddlePromise = null
+      throw error
+    })
+  }
+  return paddlePromise
 }
 
 function imageFromBitmap(bitmap, x, y, width, height, scale = 1) {
@@ -37,7 +63,6 @@ function cleanTableStrip(canvas) {
     }
   }
 
-  // Remove only long straight table rules. Character strokes are shorter and remain.
   for (let y = 0; y < canvas.height; y += 1) {
     if (rowDark[y] > canvas.width * 0.55) {
       for (let yy = Math.max(0, y - 2); yy <= Math.min(canvas.height - 1, y + 2); yy += 1) {
@@ -97,8 +122,6 @@ function detectRowBands(bitmap) {
       start = -1
     }
   }
-
-  // Table rules delimit rows. Convert gaps between rules to row bands.
   const lines = runs.map((r) => ({ y: (r.start + r.end) / 2 / scale, thickness: (r.end - r.start + 1) / scale }))
   const bands = []
   for (let i = 0; i + 1 < lines.length; i += 1) {
@@ -128,32 +151,8 @@ function findLikelySplit(bitmap) {
   return best / canvas.width
 }
 
-function rowsFromWords(words) {
-  const usable = (words || []).map((word) => {
-    const text = normalize(word?.text || '')
-    const b = word?.bbox || {}
-    const x = Number(b.x0), y = Number(b.y0), x1 = Number(b.x1), y1 = Number(b.y1)
-    return { text, x, y, x1, y1, cy: (y + y1) / 2, h: Math.max(1, y1 - y) }
-  }).filter((word) => word.text && Number.isFinite(word.x) && Number.isFinite(word.y) && Number.isFinite(word.x1) && Number.isFinite(word.y1))
-  usable.sort((a, b) => a.cy - b.cy || a.x - b.x)
-  const rows = []
-  for (const word of usable) {
-    let row = rows.find((candidate) => Math.abs(candidate.cy - word.cy) <= Math.max(10, Math.min(candidate.h, word.h) * 0.8))
-    if (!row) { row = { cy: word.cy, h: word.h, words: [] }; rows.push(row) }
-    row.words.push(word)
-    row.cy = row.words.reduce((sum, item) => sum + item.cy, 0) / row.words.length
-    row.h = Math.max(row.h, word.h)
-  }
-  return rows.sort((a, b) => a.cy - b.cy).map((row) => ({ cy: row.cy, text: row.words.sort((a, b) => a.x - b.x).map((word) => word.text).join(' ') }))
-}
-
-async function recognize(worker, blob, parameters) {
-  await worker.setParameters(parameters)
-  return worker.recognize(blob)
-}
-
 function extractNumber(text) {
-  const tokens = String(text || '').match(/[0-9ΟOΙIΖZΕEΑASΣGΓΤTΒBqQ]{4,8}/g) || []
+  const tokens = String(text || '').match(/[0-9ΟOΙIΖZΕEΑASΣGΓΤTΒBqQ]{3,8}/g) || []
   for (const token of tokens) {
     const n = registryToken(token)
     if (n.length >= 4 && n.length <= 6) return n
@@ -161,7 +160,31 @@ function extractNumber(text) {
   return null
 }
 
-export async function parseOcrColumns(file, worker) {
+function extractPaddleText(result) {
+  return (result?.items || [])
+    .slice()
+    .sort((a, b) => {
+      const ay = Math.min(...(a.poly || []).map((p) => p[1] ?? 0))
+      const by = Math.min(...(b.poly || []).map((p) => p[1] ?? 0))
+      return ay - by
+    })
+    .map((item) => normalize(item.text))
+    .filter(Boolean)
+}
+
+async function recognizePaddle(ocr, blob, threshold = 0.30) {
+  const [result] = await ocr.predict(blob, {
+    textDetBoxThresh: 0.20,
+    textDetThresh: 0.20,
+    textRecScoreThresh: threshold,
+    textDetLimitSideLen: 1800,
+    textDetLimitType: 'max'
+  })
+  return result
+}
+
+export async function parseOcrColumns(file) {
+  const ocr = await getPaddleOcr()
   const bitmap = await createImageBitmap(file)
   try {
     const bands = detectRowBands(bitmap)
@@ -169,8 +192,6 @@ export async function parseOcrColumns(file, worker) {
     const splitX = Math.round(bitmap.width * splitRatio)
     const results = []
 
-    // Primary path: each physical table row gets its own OCR call. This prevents
-    // neighbouring rows and table rules from being interpreted as one sentence.
     if (bands.length >= 3) {
       for (const band of bands) {
         const rowHeight = band.bottom - band.top
@@ -178,25 +199,17 @@ export async function parseOcrColumns(file, worker) {
         const padY = Math.max(2, rowHeight * 0.08)
         const top = Math.max(0, band.top + padY)
         const bottom = Math.min(bitmap.height, band.bottom - padY)
-        const numberCanvas = cleanTableStrip(imageFromBitmap(bitmap, 0, top, splitX, bottom - top, Math.min(4, 2600 / Math.max(1, splitX))))
-        const nameCanvas = cleanTableStrip(imageFromBitmap(bitmap, splitX + Math.round(bitmap.width * 0.008), top, bitmap.width - splitX, bottom - top, Math.min(3.5, 3000 / Math.max(1, bitmap.width - splitX))))
-        const numberBlob = await canvasBlob(numberCanvas)
-        const nameBlob = await canvasBlob(nameCanvas)
-
-        const numberResult = await recognize(worker, numberBlob, {
-          tessedit_pageseg_mode: '7',
-          tessedit_char_whitelist: '0123456789',
-          preserve_interword_spaces: '1'
-        })
-        const number = extractNumber(numberResult.data?.text || '')
+        const numberScale = Math.min(4, 2600 / Math.max(1, splitX))
+        const nameScale = Math.min(3.5, 3000 / Math.max(1, bitmap.width - splitX))
+        const numberCanvas = cleanTableStrip(imageFromBitmap(bitmap, 0, top, splitX, bottom - top, numberScale))
+        const nameCanvas = cleanTableStrip(imageFromBitmap(bitmap, splitX + Math.round(bitmap.width * 0.008), top, bitmap.width - splitX, bottom - top, nameScale))
+        const numberResult = await recognizePaddle(ocr, await canvasBlob(numberCanvas), 0.20)
+        const number = extractNumber(extractPaddleText(numberResult).join(' '))
         if (!number) continue
 
-        const nameResult = await recognize(worker, nameBlob, {
-          tessedit_pageseg_mode: '7',
-          tessedit_char_whitelist: '',
-          preserve_interword_spaces: '1'
-        })
-        const fullName = normalize(nameResult.data?.text || '')
+        const nameResult = await recognizePaddle(ocr, await canvasBlob(nameCanvas), 0.35)
+        const fullName = extractPaddleText(nameResult)
+          .join(' ')
           .replace(/[^A-Za-zΑ-ΩΆΈΉΊΌΎΏα-ωάέήίόύώ\-\s]/gu, ' ')
           .replace(/\s+/g, ' ')
           .trim()
@@ -205,6 +218,7 @@ export async function parseOcrColumns(file, worker) {
         if (parts.length < 2) continue
         results.push({ registryNumber: number, fullName, lastName: parts[0], firstName: parts.slice(1).join(' ') })
       }
+
       const unique = []
       const seen = new Set()
       for (const row of results) {
@@ -213,25 +227,21 @@ export async function parseOcrColumns(file, worker) {
       if (unique.length) return unique
     }
 
-    // Fallback if horizontal rules could not be detected: the previous two-column
-    // OCR path still gives us a useful result on forms without clear table rules.
+    // Fallback: run PaddleOCR on the two complete columns when row rules are not detectable.
     const numberCanvas = cleanTableStrip(imageFromBitmap(bitmap, 0, 0, splitX, bitmap.height, Math.min(3.5, 2600 / Math.max(1, splitX))))
     const nameCanvas = cleanTableStrip(imageFromBitmap(bitmap, splitX + Math.round(bitmap.width * 0.008), 0, bitmap.width - splitX, bitmap.height, Math.min(3, 3000 / Math.max(1, bitmap.width - splitX))))
-    const numberResult = await recognize(worker, await canvasBlob(numberCanvas), { tessedit_pageseg_mode: '6', tessedit_char_whitelist: '0123456789', preserve_interword_spaces: '1' })
-    const nameResult = await recognize(worker, await canvasBlob(nameCanvas), { tessedit_pageseg_mode: '6', tessedit_char_whitelist: '', preserve_interword_spaces: '1' })
-    const numbers = rowsFromWords(numberResult.data?.words || []).map((r) => ({ cy: r.cy, registryNumber: extractNumber(r.text) })).filter((r) => r.registryNumber)
-    const names = rowsFromWords(nameResult.data?.words || []).map((r) => ({ cy: r.cy, fullName: normalize(r.text) })).filter((r) => /[A-Za-zΑ-ΩΆΈΉΊΌΎΏα-ωάέήίόύώ]{2,}/u.test(r.fullName))
+    const numberResult = await recognizePaddle(ocr, await canvasBlob(numberCanvas), 0.20)
+    const nameResult = await recognizePaddle(ocr, await canvasBlob(nameCanvas), 0.35)
+    const numbers = extractPaddleText(numberResult).map(extractNumber).filter(Boolean)
+    const names = extractPaddleText(nameResult)
     const fallback = []
-    for (const number of numbers) {
-      const best = names.reduce((acc, row) => !acc || Math.abs(row.cy - number.cy) < Math.abs(acc.cy - number.cy) ? row : acc, null)
-      if (!best || Math.abs(best.cy - number.cy) > 140) continue
-      const parts = best.fullName.split(/\s+/).filter(Boolean)
-      if (parts.length >= 2) fallback.push({ registryNumber: number.registryNumber, fullName: best.fullName, lastName: parts[0], firstName: parts.slice(1).join(' ') })
+    const count = Math.min(numbers.length, names.length)
+    for (let i = 0; i < count; i += 1) {
+      const fullName = names[i]
+      const parts = fullName.split(/\s+/).filter(Boolean)
+      if (parts.length >= 2) fallback.push({ registryNumber: numbers[i], fullName, lastName: parts[0], firstName: parts.slice(1).join(' ') })
     }
-    const uniqueFallback = []
-    const seenFallback = new Set()
-    for (const row of fallback) if (!seenFallback.has(row.registryNumber)) { seenFallback.add(row.registryNumber); uniqueFallback.push(row) }
-    return uniqueFallback
+    return fallback
   } finally {
     bitmap.close?.()
   }

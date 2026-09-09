@@ -11,6 +11,8 @@
   "dependencies": {
     "@paddleocr/paddleocr-js": "latest",
     "@supabase/supabase-js": "^2.57.0",
+    "paddleocr": "^1.2.0",
+    "onnxruntime-web": "^1.24.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tesseract.js": "^6.0.1"

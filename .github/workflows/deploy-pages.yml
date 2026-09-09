@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Upgrade OCR parser to three fields
+      - name: Upgrade OCR parser to three fields for this build
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -150,14 +150,6 @@ async function parseOcrColumns(file, worker) {
           s = s.replace('const parsedByColumns = parseOcrWords(result.data.words || [])', 'const parsedByColumns = await parseOcrColumns(file, worker)')
           path.write_text(s, encoding='utf-8')
           PY
-
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/StudentsView.jsx
-          if ! git diff --cached --quiet; then
-            git commit -m 'OCR: read registry, surname and first name separately'
-            git push origin main
-          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4

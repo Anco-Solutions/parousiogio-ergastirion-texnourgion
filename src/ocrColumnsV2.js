@@ -2,7 +2,6 @@ import { PaddleOcrService } from 'paddleocr'
 import * as ort from 'onnxruntime-web'
 
 const DET_URL = 'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx'
-// Keep the recognition model and dictionary from the same export family.
 const REC_URL = 'https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/el/v5/el_PP-OCRv5_mobile_rec_infer.onnx'
 const DICT_URL = 'https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/el/v5/ppocrv5_el_dict.txt'
 
@@ -44,19 +43,12 @@ async function getService() {
   if (!servicePromise) {
     servicePromise = (modelPromise || (modelPromise = Promise.all([fetchBuffer(DET_URL), fetchBuffer(REC_URL), fetchText(DICT_URL)])))
       .then(([detModel, recModel, dictText]) => {
-        // The ONNX export has 356 output classes while the Greek dictionary
-        // contains 354 actual characters. The browser runtime reserves one
-        // additional slot, so give it a harmless sentinel at the end. This
-        // leaves the real Greek character indexes unchanged.
         const charactersDictionary = [...dictText.trim().split(/\r?\n/).filter(Boolean), '¤']
         return PaddleOcrService.createInstance({
           ort,
           modelPreset: 'PP-OCRv5_mobile',
           detection: { modelBuffer: detModel },
-          recognition: {
-            modelBuffer: recModel,
-            charactersDictionary
-          }
+          recognition: { modelBuffer: recModel, charactersDictionary }
         })
       })
       .catch((error) => { servicePromise = null; throw error })
@@ -96,20 +88,24 @@ function groupRows(items) {
   const ordered = items.slice().sort((a, b) => a.cy - b.cy || a.cx - b.cx)
   const heights = ordered.map((item) => item.h).filter((value) => Number.isFinite(value)).sort((a, b) => a - b)
   const medianHeight = heights.length ? heights[Math.floor(heights.length / 2)] : 20
-  const tolerance = Math.max(10, medianHeight * 0.8)
+  // Keep adjacent physical rows separate. A looser tolerance caused the
+  // second student name to be attached to the previous student's AM.
+  const tolerance = Math.max(6, medianHeight * 0.45)
   const rows = []
   for (const item of ordered) {
     let best = null
     let bestDistance = Infinity
     for (const row of rows) {
-      const distance = Math.abs(row.cy - item.cy)
+      const distance = Math.abs(row.anchorY - item.cy)
       if (distance <= tolerance && distance < bestDistance) { best = row; bestDistance = distance }
     }
-    if (!best) { best = { cy: item.cy, items: [] }; rows.push(best) }
+    if (!best) {
+      best = { anchorY: item.cy, cy: item.cy, items: [] }
+      rows.push(best)
+    }
     best.items.push(item)
-    best.cy = best.items.reduce((sum, current) => sum + current.cy, 0) / best.items.length
   }
-  return rows.sort((a, b) => a.cy - b.cy)
+  return rows.sort((a, b) => a.anchorY - b.anchorY)
 }
 
 function parseDetectedRows(items) {

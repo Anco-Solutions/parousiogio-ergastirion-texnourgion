@@ -2,7 +2,8 @@ import { PaddleOcrService } from 'paddleocr'
 import * as ort from 'onnxruntime-web'
 
 const DET_URL = 'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx'
-const REC_URL = 'https://huggingface.co/PaddlePaddle/el_PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx'
+// Keep the recognition model and dictionary from the same export family.
+const REC_URL = 'https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/el/v5/el_PP-OCRv5_mobile_rec_infer.onnx'
 const DICT_URL = 'https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/el/v5/ppocrv5_el_dict.txt'
 
 let servicePromise = null

@@ -43,15 +43,22 @@ async function fetchText(url) {
 async function getService() {
   if (!servicePromise) {
     servicePromise = (modelPromise || (modelPromise = Promise.all([fetchBuffer(DET_URL), fetchBuffer(REC_URL), fetchText(DICT_URL)])))
-      .then(([detModel, recModel, dictText]) => PaddleOcrService.createInstance({
-        ort,
-        modelPreset: 'PP-OCRv5_mobile',
-        detection: { modelBuffer: detModel },
-        recognition: {
-          modelBuffer: recModel,
-          charactersDictionary: dictText.trim().split(/\r?\n/).filter(Boolean)
-        }
-      }))
+      .then(([detModel, recModel, dictText]) => {
+        // The ONNX export has 356 output classes while the Greek dictionary
+        // contains 354 actual characters. The browser runtime reserves one
+        // additional slot, so give it a harmless sentinel at the end. This
+        // leaves the real Greek character indexes unchanged.
+        const charactersDictionary = [...dictText.trim().split(/\r?\n/).filter(Boolean), '¤']
+        return PaddleOcrService.createInstance({
+          ort,
+          modelPreset: 'PP-OCRv5_mobile',
+          detection: { modelBuffer: detModel },
+          recognition: {
+            modelBuffer: recModel,
+            charactersDictionary
+          }
+        })
+      })
       .catch((error) => { servicePromise = null; throw error })
   }
   return servicePromise
@@ -119,7 +126,7 @@ function parseDetectedRows(items) {
     }
     if (numberIndex < 0 || seen.has(registryNumber)) continue
     const nameWords = cells.slice(numberIndex + 1)
-      .map((cell) => normalize(cell.text))
+      .map((cell) => normalize(cell.text).replaceAll('¤', ''))
       .filter((text) => /[Α-Ωα-ωΆ-Ώά-ώ]/u.test(text))
       .filter((text) => !/^(?:ΑΜ|ΟΝΟΜΑΤΕΠΩΝΥΜΟ|ΕΠΩΝΥΜΟ|ΟΝΟΜΑ)$/iu.test(text))
     if (nameWords.length < 2) continue
@@ -150,7 +157,7 @@ export async function parseOcrColumnsV2(file) {
       onProgress(event) {
         if (event?.type === 'rec' && event?.stage === 'item' && event?.result?.text && event?.box) {
           const center = centerOfBox(event.box)
-          detected.push({ text: normalize(event.result.text), cx: center.x, cy: center.y, h: center.h })
+          detected.push({ text: normalize(event.result.text).replaceAll('¤', ''), cx: center.x, cy: center.y, h: center.h })
         }
       }
     })
